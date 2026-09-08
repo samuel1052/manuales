@@ -1,1 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Biblioteca Técnica</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0d6efd">
+    <!-- Iconos para iOS -->
+    <link rel="apple-touch-icon" href="assets/icons/icon-192x192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+</head>
+<body class="light-mode">
 
+    <!-- Encabezado superior -->
+    <header class="app-header">
+        <h1 id="header-title">📚 Biblioteca Técnica</h1>
+    </header>
+
+    <!-- Contenedor Principal (Vistas) -->
+    <main class="app-main" id="app-main">
+        
+        <!-- VISTA: INICIO -->
+        <section id="view-home" class="view active">
+            <div class="search-container">
+                <input type="text" id="main-search" placeholder="🔎 Buscar manual, marca, modelo..." autocomplete="off">
+            </div>
+
+            <div class="section-title">Acceso rápido</div>
+            <div class="categories-grid">
+                <button class="cat-btn" data-cat="Alarmas">🔔 Alarmas</button>
+                <button class="cat-btn" data-cat="CCTV">📹 CCTV</button>
+                <button class="cat-btn" data-cat="Redes">🌐 Redes</button>
+                <button class="cat-btn" data-cat="Control de Acceso">🚪 Accesos</button>
+                <button class="cat-btn" data-cat="Videoporteros">📞 Videoporteros</button>
+                <button class="cat-btn" data-cat="Electricidad">⚡ Electricidad</button>
+                <button class="cat-btn" data-cat="Otros">🔧 Otros</button>
+            </div>
+
+            <div class="section-title">🕘 Consultados recientemente</div>
+            <div id="recent-list" class="items-list"></div>
+
+            <div class="section-title">⭐ Favoritos</div>
+            <div id="favorites-list-home" class="items-list"></div>
+        </section>
+
+        <!-- VISTA: BÚSQUEDA / FILTROS -->
+        <section id="view-search" class="view">
+            <div class="search-header">
+                <input type="text" id="secondary-search" placeholder="🔎 Buscar..." autocomplete="off">
+            </div>
+            <div class="filters-scroll">
+                <select id="filter-category"><option value="">Todas las categorías</option></select>
+                <select id="filter-brand"><option value="">Todas las marcas</option></select>
+            </div>
+            <div id="search-results" class="items-list"></div>
+        </section>
+
+        <!-- VISTA: FAVORITOS -->
+        <section id="view-favorites" class="view">
+            <div class="section-title">Mis Favoritos</div>
+            <div id="favorites-list-full" class="items-list"></div>
+        </section>
+
+        <!-- VISTA: MÁS (Ajustes) -->
+        <section id="view-more" class="view">
+            <div class="section-title">⚙️ Configuración</div>
+            <div class="settings-card">
+                <div class="setting-item">
+                    <span>🌙 Modo Oscuro</span>
+                    <label class="switch">
+                        <input type="checkbox" id="theme-toggle">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="section-title">☁️ Sincronización (Próximamente)</div>
+            <div class="settings-card disabled-card">
+                <p>Las funciones de cuenta, login y copia de seguridad en la nube estarán disponibles en la próxima versión.</p>
+                <button class="btn primary disabled" disabled>🔐 Iniciar Sesión</button>
+            </div>
+        </section>
+
+        <!-- VISTA: FICHA DE EQUIPO -->
+        <section id="view-detail" class="view">
+            <button class="back-btn" id="btn-back">⬅ Volver</button>
+            <div id="detail-content">
+                <!-- Se rellena con JS -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Navegación Inferior -->
+    <nav class="bottom-nav">
+        <a href="#" class="nav-item active" data-target="view-home">
+            <span class="nav-icon">🏠</span>
+            <span class="nav-text">Inicio</span>
+        </a>
+        <a href="#" class="nav-item" data-target="view-search">
+            <span class="nav-icon">🔎</span>
+            <span class="nav-text">Buscar</span>
+        </a>
+        <a href="#" class="nav-item" data-target="view-favorites">
+            <span class="nav-icon">⭐</span>
+            <span class="nav-text">Favoritos</span>
+        </a>
+        <a href="#" class="nav-item" data-target="view-more">
+            <span class="nav-icon">⚙️</span>
+            <span class="nav-text">Más</span>
+        </a>
+    </nav>
+
+    <script src="app.js"></script>
+</body>
+</html>
