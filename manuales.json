@@ -1,1 +1,130 @@
-
+[
+  {
+    "id": "dahua-dhi-nvr5208-e12",
+    "marca": "Dahua",
+    "modelo": "DHI-NVR5208-E12",
+    "categoria": "CCTV",
+    "tipo": "NVR",
+    "descripcion": "Grabador de vídeo en red de 8 canales",
+    "tags": ["Dahua", "NVR", "8 canales", "grabador", "CCTV", "IP"],
+    "documentos": {
+      "manual": "manuales/cctv/dahua/dhi-nvr5208-e12/manual.pdf",
+      "instalacion": "manuales/cctv/dahua/dhi-nvr5208-e12/instalacion.pdf",
+      "ficha": "manuales/cctv/dahua/dhi-nvr5208-e12/ficha.pdf",
+      "firmware": null
+    },
+    "fabricante": "https://www.dahuasecurity.com/"
+  },
+  {
+    "id": "ajax-hub-2",
+    "marca": "Ajax",
+    "modelo": "Hub 2",
+    "categoria": "Alarmas",
+    "tipo": "Central",
+    "descripcion": "Panel de control inteligente con verificación visual de alarmas",
+    "tags": ["Ajax", "Hub", "Central", "Alarma", "Inalámbrico"],
+    "documentos": {
+      "manual": "manuales/alarmas/ajax/hub-2/manual.pdf",
+      "instalacion": null,
+      "ficha": null,
+      "firmware": null
+    },
+    "fabricante": "https://ajax.systems/es/"
+  },
+  {
+    "id": "ajax-doorprotect",
+    "marca": "Ajax",
+    "modelo": "DoorProtect",
+    "categoria": "Alarmas",
+    "tipo": "Detector",
+    "descripcion": "Detector de apertura magnético inalámbrico",
+    "tags": ["Ajax", "Magnético", "Detector", "Puerta", "Ventana"],
+    "documentos": {
+      "manual": "manuales/alarmas/ajax/doorprotect/manual.pdf",
+      "instalacion": null,
+      "ficha": null,
+      "firmware": null
+    },
+    "fabricante": "https://ajax.systems/es/"
+  },
+  {
+    "id": "risco-lightsys-plus",
+    "marca": "Risco",
+    "modelo": "LightSYS+",
+    "categoria": "Alarmas",
+    "tipo": "Central",
+    "descripcion": "Sistema de seguridad híbrido para el mercado residencial y comercial",
+    "tags": ["Risco", "Híbrido", "Central", "Grado 2", "Grado 3"],
+    "documentos": {
+      "manual": "manuales/alarmas/risco/lightsys-plus/manual.pdf",
+      "instalacion": "manuales/alarmas/risco/lightsys-plus/instalacion.pdf",
+      "ficha": null,
+      "firmware": null
+    },
+    "fabricante": "https://www.riscogroup.com/"
+  },
+  {
+    "id": "hikvision-ds-7608",
+    "marca": "Hikvision",
+    "modelo": "DS-7608NI-K2",
+    "categoria": "CCTV",
+    "tipo": "NVR",
+    "descripcion": "NVR de 8 canales, soporte para cámaras de hasta 8MP",
+    "tags": ["Hikvision", "NVR", "8 canales", "CCTV", "IP"],
+    "documentos": {
+      "manual": "manuales/cctv/hikvision/ds-7608/manual.pdf",
+      "instalacion": null,
+      "ficha": null,
+      "firmware": null
+    },
+    "fabricante": "https://www.hikvision.com/"
+  },
+  {
+    "id": "ezviz-hp7",
+    "marca": "EZVIZ",
+    "modelo": "HP7",
+    "categoria": "Videoporteros",
+    "tipo": "Videoportero",
+    "descripcion": "Videoportero inteligente para el hogar con pantalla táctil de 7 pulgadas",
+    "tags": ["EZVIZ", "Videoportero", "Pantalla", "Intercom", "WiFi"],
+    "documentos": {
+      "manual": "manuales/videoporteros/ezviz/hp7/manual.pdf",
+      "instalacion": null,
+      "ficha": "manuales/videoporteros/ezviz/hp7/ficha.pdf",
+      "firmware": null
+    },
+    "fabricante": "https://www.ezviz.com/"
+  },
+  {
+    "id": "tplink-tl-sg1006pp",
+    "marca": "TP-Link",
+    "modelo": "TL-SG1006PP",
+    "categoria": "Redes",
+    "tipo": "Switch",
+    "descripcion": "Switch de sobremesa Gigabit de 6 puertos con 4 puertos PoE+",
+    "tags": ["TP-Link", "Switch", "PoE", "Gigabit", "Red"],
+    "documentos": {
+      "manual": "manuales/redes/tplink/tl-sg1006pp/manual.pdf",
+      "instalacion": null,
+      "ficha": null,
+      "firmware": null
+    },
+    "fabricante": "https://www.tp-link.com/"
+  },
+  {
+    "id": "ubiquiti-cloudkey",
+    "marca": "Ubiquiti",
+    "modelo": "Cloud Key Gen2",
+    "categoria": "Redes",
+    "tipo": "Controlador",
+    "descripcion": "Controlador de red UniFi",
+    "tags": ["Ubiquiti", "UniFi", "Controlador", "Redes"],
+    "documentos": {
+      "manual": "manuales/redes/ubiquiti/cloudkey/manual.pdf",
+      "instalacion": "manuales/redes/ubiquiti/cloudkey/instalacion.pdf",
+      "ficha": null,
+      "firmware": null
+    },
+    "fabricante": "https://ui.com/"
+  }
+]
