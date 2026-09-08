@@ -8,7 +8,7 @@
     "descripcion": "Grabador de vídeo en red de 8 canales",
     "tags": ["Dahua", "NVR", "8 canales", "grabador", "CCTV", "IP"],
     "documentos": {
-      "manual": "manuales/cctv/dahua/dhi-nvr5208-e12/manual.pdf",
+      "manual": "./manuales/cctv/dahua/dhi-nvr5208-e12/manual.pdf",,
       "instalacion": "manuales/cctv/dahua/dhi-nvr5208-e12/instalacion.pdf",
       "ficha": "manuales/cctv/dahua/dhi-nvr5208-e12/ficha.pdf",
       "firmware": null
