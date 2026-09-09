@@ -62,7 +62,23 @@
     "firmware": null
   },
   "fabricante": "https://www.riscogroup.com/es"
-}
+},
+  {
+    "id": "risco-iwise-dt-am-g3",
+    "marca": "Risco",
+    "modelo": "iWISE DT AM G3",
+    "categoria": "Alarmas",
+    "tipo": "Detector Doble Tecnología",
+    "descripcion": "Detector de doble tecnología (PIR + Microondas) con antienmascaramiento Grado 3",
+    "tags": ["Risco", "iWISE", "Detector", "Doble Tecnologia", "Anti Masking", "Grado 3", "AM"],
+    "documentos": {
+      "manual": "./manuales/alarmas/risco/iwise-dt-am-g3/manual.pdf",
+      "instalacion": null,
+      "ficha": null,
+      "firmware": null
+    },
+    "fabricante": "https://www.riscogroup.com/es"
+  },
   {
     "id": "risco-lightsys-plus",
     "marca": "Risco",
