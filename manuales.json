@@ -48,6 +48,22 @@
     "fabricante": "https://ajax.systems/es/"
   },
   {
+    "id": "risco-agility-4",
+    "marca": "Risco",
+    "modelo": "Agility 4",
+    "categoria": "Alarmas",
+    "tipo": "Central Inalámbrica",
+    "descripcion": "Sistema de seguridad inalámbrico bidireccional con verificación visual y multicanal",
+    "tags": ["Risco", "Agility", "Agility 4", "Alarma", "Inalámbrico", "Central", "Bidireccional"],
+    "documentos": {
+      "manual": "./manuales/alarmas/risco/agility-4/manual.pdf",
+      "instalacion": null,
+      "ficha": null,
+      "firmware": null
+    },
+    "fabricante": "https://www.riscogroup.com/es"
+  },
+  {
   "id": "risco-lightsys-2",
   "marca": "Risco",
   "modelo": "LightSYS 2",
