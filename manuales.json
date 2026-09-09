@@ -16,6 +16,22 @@
     "fabricante": "https://www.dahuasecurity.com/"
   },
   {
+    "id": "ajax-hub-hybrid",
+    "marca": "Ajax",
+    "modelo": "Hub Hybrid (4G)",
+    "categoria": "Alarmas",
+    "tipo": "Central Híbrida",
+    "descripcion": "Panel de control híbrido compatible con dispositivos inalámbricos Jeweller y cableados Fibra",
+    "tags": ["Ajax", "Fibra", "Hub Hybrid", "Cableado", "Central", "Alarma", "Híbrida"],
+    "documentos": {
+      "manual": "./manuales/alarmas/ajax/hub-hybrid/manual.pdf",
+      "instalacion": null,
+      "ficha": null,
+      "firmware": null
+    },
+    "fabricante": "https://ajax.systems/es/"
+  },
+  {
     "id": "ajax-hub-2",
     "marca": "Ajax",
     "modelo": "Hub 2",
