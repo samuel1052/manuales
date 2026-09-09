@@ -48,6 +48,22 @@
     "fabricante": "https://ajax.systems/es/"
   },
   {
+  "id": "risco-lightsys-2",
+  "marca": "Risco",
+  "modelo": "LightSYS 2",
+  "categoria": "Alarmas",
+  "tipo": "Central Híbrida",
+  "descripcion": "Sistema de seguridad híbrido profesional de 8 a 50 zonas",
+  "tags": ["Risco", "LightSYS", "Alarma", "Híbrida", "Zonas"],
+  "documentos": {
+    "manual": "./manuales/alarmas/risco/lightsys-2/manual.pdf",
+    "instalacion": null,
+    "ficha": null,
+    "firmware": null
+  },
+  "fabricante": "https://www.riscogroup.com/es"
+}
+  {
     "id": "risco-lightsys-plus",
     "marca": "Risco",
     "modelo": "LightSYS+",
@@ -128,3 +144,4 @@
     "fabricante": "https://ui.com/"
   }
 ]
+
