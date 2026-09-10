@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>A7 SEGURIDAD</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <!-- RUTA CORREGIDA -->
+    <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0d6efd">
     <!-- Iconos para iOS -->
@@ -58,7 +59,7 @@
             <div id="search-results" class="items-list"></div>
         </section>
 
-        <!-- NUEVA VISTA: FICHA TÉCNICA -->
+        <!-- VISTA: FICHA TÉCNICA -->
         <section id="view-ficha" class="view">
             <div class="section-title">🔧 Ficha Técnica de Instalación</div>
             <div id="ficha-form-container"></div>
@@ -127,26 +128,5 @@
     <!-- SCRIPTS -->
     <script src="js/ficha.js"></script>
     <script src="app.js"></script>
-    <script>
-        // Inicializador automático para la vista de Ficha Técnica cuando se selecciona en la navegación
-        document.querySelectorAll('.bottom-nav .nav-item').forEach(item => {
-            item.addEventListener('click', (e) => {
-                const target = item.getAttribute('data-target');
-                if (target === 'view-ficha' && window.initFichaTecnica) {
-                    window.initFichaTecnica();
-                }
-            });
-        });
-    </script> 
-    <script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js')
-        .then(reg => console.log('Service Worker registrado con éxito', reg))
-        .catch(err => console.error('Error al registrar el Service Worker', err));
-    });
-  }
-</script>
-
 </body>
 </html>
