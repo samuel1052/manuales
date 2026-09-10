@@ -163,7 +163,8 @@ const AppUI = {
         if(viewId !== 'view-detail') this.lastView = viewId;
         
         this.views.forEach(v => v.classList.remove('active'));
-        document.getElementById(viewId).classList.add('active');
+        const targetView = document.getElementById(viewId);
+        if(targetView) targetView.classList.add('active');
 
         this.navItems.forEach(nav => {
             if (nav.dataset.target === viewId) nav.classList.add('active');
@@ -172,6 +173,11 @@ const AppUI = {
 
         if (viewId === 'view-home') this.renderHome();
         if (viewId === 'view-favorites') this.renderFavoritesFull();
+        
+        // Cargar Ficha Técnica al entrar en la pestaña
+        if (viewId === 'view-ficha' && window.initFichaTecnica) {
+            window.initFichaTecnica();
+        }
     },
 
     // Generadores de HTML
@@ -301,7 +307,8 @@ const AppUI = {
 
     loadTheme() {
         const theme = StorageService.getTheme();
-        document.getElementById('theme-toggle').checked = (theme === 'dark');
+        const themeToggle = document.getElementById('theme-toggle');
+        if (themeToggle) themeToggle.checked = (theme === 'dark');
         this.applyTheme(theme);
     },
 
@@ -324,7 +331,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Registro del Service Worker
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('service-worker.js')
+        navigator.serviceWorker.register('sw.js')
             .then(reg => console.log('Service Worker registrado', reg))
             .catch(err => console.error('Error registrando Service Worker', err));
     });
