@@ -184,7 +184,7 @@
     "descripcion": "Controlador de red UniFi",
     "tags": ["Ubiquiti", "UniFi", "Controlador", "Redes"],
     "documentos": {
-      "manual": "manuales/redes/ubiquiti/cloudkey/manual.pdf",
+      "manual": "manuales/redes/ubiquiti/cloud-key-gen2/manual.pdf",
       "instalacion": "manuales/redes/ubiquiti/cloudkey/instalacion.pdf",
       "ficha": null,
       "firmware": null
