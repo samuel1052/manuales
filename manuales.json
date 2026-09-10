@@ -206,6 +206,22 @@
       "firmware": null
     },
     "fabricante": "https://ui.com/"
+  },
+  {
+    "id": "hikvision-ds-kv8113-ime1",
+    "marca": "Hikvision",
+    "modelo": "DS-KV8113-IME1(B)",
+    "categoria": "Videoporteros",
+    "tipo": "Videoportero IP",
+    "descripcion": "Estación exterior IP con cámara HD 2MP, lector RFID integrado, PoE estándar y protección IP65/IK08",
+    "tags": ["Hikvision", "KV8113", "DS-KV8113-IME1", "Videoportero", "IP", "PoE", "Intercom", "Placa"],
+    "documentos": {
+      "manual": "./manuales/videoporteros/hikvision/ds-kv8113-ime1/manual.pdf",
+      "instalacion": null,
+      "ficha": null,
+      "firmware": null
+    },
+    "fabricante": "https://www.hikvision.com/es/"
   }
 ]
 
