@@ -16,6 +16,22 @@
     "fabricante": "https://www.dahuasecurity.com/"
   },
   {
+    "id": "dahua-vto2202f-p",
+    "marca": "Dahua",
+    "modelo": "VTO2202F-P",
+    "categoria": "Videoporteros",
+    "tipo": "Videoportero IP",
+    "descripcion": "Estación exterior IP de videoportero antivandálica con cámara de 2MP, PoE y visión nocturna",
+    "tags": ["Dahua", "VTO", "VTO2202F-P", "Videoportero", "IP", "PoE", "Portero", "Exterior"],
+    "documentos": {
+      "manual": "./manuales/videoporteros/dahua/vto2202f-p/manual.pdf",
+      "instalacion": null,
+      "ficha": null,
+      "firmware": null
+    },
+    "fabricante": "https://www.dahuasecurity.com/"
+  },
+  {
     "id": "ajax-hub-hybrid",
     "marca": "Ajax",
     "modelo": "Hub Hybrid (4G)",
