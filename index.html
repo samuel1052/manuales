@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>A7 SEGURIDAD</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="css/styles.css">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0d6efd">
     <!-- Iconos para iOS -->
@@ -58,6 +58,12 @@
             <div id="search-results" class="items-list"></div>
         </section>
 
+        <!-- NUEVA VISTA: FICHA TÉCNICA -->
+        <section id="view-ficha" class="view">
+            <div class="section-title">🔧 Ficha Técnica de Instalación</div>
+            <div id="ficha-form-container"></div>
+        </section>
+
         <!-- VISTA: FAVORITOS -->
         <section id="view-favorites" class="view">
             <div class="section-title">Mis Favoritos</div>
@@ -104,6 +110,10 @@
             <span class="nav-icon">🔎</span>
             <span class="nav-text">Buscar</span>
         </a>
+        <a href="#" class="nav-item" data-target="view-ficha">
+            <span class="nav-icon">🔧</span>
+            <span class="nav-text">Ficha</span>
+        </a>
         <a href="#" class="nav-item" data-target="view-favorites">
             <span class="nav-icon">⭐</span>
             <span class="nav-text">Favoritos</span>
@@ -114,6 +124,19 @@
         </a>
     </nav>
 
+    <!-- SCRIPTS -->
+    <script src="js/ficha.js"></script>
     <script src="app.js"></script>
+    <script>
+        // Inicializador automático para la vista de Ficha Técnica cuando se selecciona en la navegación
+        document.querySelectorAll('.bottom-nav .nav-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                const target = item.getAttribute('data-target');
+                if (target === 'view-ficha' && window.initFichaTecnica) {
+                    window.initFichaTecnica();
+                }
+            });
+        });
+    </script>
 </body>
 </html>
