@@ -221,7 +221,7 @@ body {
     border-color: #ffe69c;
 }
 
-/* Formulario de Ficha Técnica */
+/* Formulario de Ficha Técnica Avanzado */
 .ficha-card {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
@@ -233,15 +233,33 @@ body {
 }
 
 .ficha-card h3 {
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 600;
     color: var(--primary);
-    margin-top: 8px;
+    margin-top: 10px;
     border-bottom: 1px solid var(--border-color);
-    padding-bottom: 4px;
+    padding-bottom: 6px;
 }
 
-.ficha-card input, .ficha-card textarea {
+.ficha-card h4 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-top: 6px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.form-group label {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.styled-select, .ficha-card input, .ficha-card textarea {
     width: 100%;
     padding: 10px 12px;
     border: 1px solid var(--border-color);
@@ -250,7 +268,55 @@ body {
     background: var(--bg-color);
     color: var(--text-color);
     outline: none;
-    resize: vertical;
+}
+
+.scrollable-box {
+    max-height: 280px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 8px;
+    background: var(--bg-color);
+}
+
+.grid-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+
+.row-num {
+    font-size: 11px;
+    font-weight: bold;
+    color: var(--primary);
+    min-width: 32px;
+    text-align: center;
+}
+
+.channel-row input, .zone-row input {
+    padding: 6px 8px;
+    font-size: 12px;
+}
+
+.channel-row input:nth-child(2) { flex: 2; }
+.channel-row input:nth-child(3) { flex: 1.5; }
+.channel-row input:nth-child(4) { flex: 1; }
+
+.zone-row input { flex: 2; }
+.zone-row select { flex: 1.5; padding: 6px; font-size: 12px; }
+
+.btn-add {
+    background: var(--card-bg);
+    color: var(--primary);
+    border: 1px dashed var(--primary);
+    border-radius: 8px;
+    padding: 8px;
+    font-weight: 600;
+    font-size: 12px;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 4px;
 }
 
 .ficha-actions {
