@@ -270,13 +270,78 @@ const AppUI = {
     renderFichaForm() {
         const container = document.getElementById('ficha-form-container');
         if(!container) return;
+
         container.innerHTML = `
-            <div style="background:var(--card-bg, #fff); padding:15px; border-radius:10px; box-shadow:0 2px 5px rgba(0,0,0,0.1);">
-                <p style="margin-bottom:10px;">Formulario de Ficha Técnica de Instalación activo.</p>
-                <input type="text" placeholder="Cliente / Instalación" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ccc; border-radius:5px;">
-                <textarea placeholder="Observaciones técnicas" style="width:100%; padding:10px; height:80px; border:1px solid #ccc; border-radius:5px;"></textarea>
+            <div class="ficha-card">
+                <h3>📋 Datos del Cliente / Obra</h3>
+                <input type="text" id="f-cliente" placeholder="Cliente / Empresa">
+                <input type="text" id="f-ubicacion" placeholder="Dirección / Ubicación">
+                <input type="date" id="f-fecha" value="${new Date().toISOString().split('T')[0]}">
+
+                <h3>🌐 Configuración de Red e IP</h3>
+                <input type="text" id="f-ip" placeholder="IP asignada (ej. 192.168.1.100)">
+                <input type="text" id="f-gateway" placeholder="Puerta de enlace / Gateway (ej. 192.168.1.1)">
+                <input type="text" id="f-puertos" placeholder="Puertos abiertos (ej. 80, 554, 8000)">
+
+                <h3>📦 Equipos e Instalación</h3>
+                <input type="text" id="f-central" placeholder="Central / NVR / DVR (Marca y Modelo)">
+                <input type="text" id="f-camaras" placeholder="Modelos de Cámaras / Detectores">
+
+                <h3>🚨 Mapeo de Zonas / Canales</h3>
+                <textarea id="f-zonas" placeholder="Z1: Entrada Principal&#10;Z2: Volumétrico Salón&#10;Z3: Magnético Cocina..." rows="4"></textarea>
+
+                <h3>📝 Observaciones y Credenciales</h3>
+                <textarea id="f-observaciones" placeholder="Claves de usuario, notas de acceso o pendientes..." rows="3"></textarea>
+
+                <div class="ficha-actions">
+                    <button class="btn-ficha primary" id="btn-copy-ficha">📋 Copiar para Notas</button>
+                    <button class="btn-ficha secondary" id="btn-download-ficha">📥 Descargar (.txt)</button>
+                </div>
             </div>
         `;
+
+        document.getElementById('btn-copy-ficha')?.addEventListener('click', () => {
+            const texto = this.generarTextoFicha();
+            navigator.clipboard.writeText(texto).then(() => {
+                alert('✅ Ficha copiada al portapapeles. Abre la app Notas y pégala.');
+            });
+        });
+
+        document.getElementById('btn-download-ficha')?.addEventListener('click', () => {
+            const texto = this.generarTextoFicha();
+            const blob = new Blob([texto], { type: 'text/plain;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            const cliente = document.getElementById('f-cliente').value || 'Instalacion';
+            link.download = `Ficha_${cliente.replace(/\s+/g, '_')}.txt`;
+            link.click();
+        });
+    },
+
+    generarTextoFicha() {
+        const getVal = id => document.getElementById(id)?.value || 'N/A';
+        return `========================================
+FICHA TÉCNICA DE INSTALACIÓN - A7 SEGURIDAD
+========================================
+FECHA: ${getVal('f-fecha')}
+CLIENTE: ${getVal('f-cliente')}
+UBICACIÓN: ${getVal('f-ubicacion')}
+
+--- RED E IP ---
+IP ASIGNADA: ${getVal('f-ip')}
+GATEWAY: ${getVal('f-gateway')}
+PUERTOS: ${getVal('f-puertos')}
+
+--- EQUIPOS INSTALADOS ---
+CENTRAL / NVR: ${getVal('f-central')}
+DETECTORES / CÁMARAS: ${getVal('f-camaras')}
+
+--- MAPEO DE ZONAS / CANALES ---
+${getVal('f-zonas')}
+
+--- OBSERVACIONES Y CREDENCIALES ---
+${getVal('f-observaciones')}
+========================================`;
     },
 
     openDetail(id) {
