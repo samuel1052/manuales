@@ -89,6 +89,8 @@ class DataService {
 
 // 3. Controlador de UI
 const AppUI = {
+    totalZones: 30,
+
     init() {
         this.cacheDOM();
         this.bindEvents();
@@ -271,6 +273,8 @@ const AppUI = {
         const container = document.getElementById('ficha-form-container');
         if(!container) return;
 
+        this.totalZones = 30;
+
         container.innerHTML = `
             <div class="ficha-card">
                 <h3>📋 Datos del Cliente / Obra</h3>
@@ -278,17 +282,64 @@ const AppUI = {
                 <input type="text" id="f-ubicacion" placeholder="Dirección / Ubicación">
                 <input type="date" id="f-fecha" value="${new Date().toISOString().split('T')[0]}">
 
-                <h3>🌐 Configuración de Red e IP</h3>
+                <h3>🌐 Configuración de Red</h3>
                 <input type="text" id="f-ip" placeholder="IP asignada (ej. 192.168.1.100)">
                 <input type="text" id="f-gateway" placeholder="Puerta de enlace / Gateway (ej. 192.168.1.1)">
                 <input type="text" id="f-puertos" placeholder="Puertos abiertos (ej. 80, 554, 8000)">
 
-                <h3>📦 Equipos e Instalación</h3>
-                <input type="text" id="f-central" placeholder="Central / NVR / DVR (Marca y Modelo)">
-                <input type="text" id="f-camaras" placeholder="Modelos de Cámaras / Detectores">
+                <h3>📹 Sistema CCTV</h3>
+                <div class="form-group">
+                    <label>Marca de Cámaras:</label>
+                    <select id="f-cctv-cam-marca" class="styled-select">
+                        <option value="Dahua">Dahua</option>
+                        <option value="Hikvision">Hikvision</option>
+                        <option value="Vesta">Vesta</option>
+                        <option value="Imou">Imou</option>
+                        <option value="Otros">Otros</option>
+                    </select>
+                    <input type="text" id="f-cctv-cam-otro" placeholder="Especificar marca/modelo de cámara" style="display:none; margin-top:6px;">
+                </div>
 
-                <h3>🚨 Mapeo de Zonas / Canales</h3>
-                <textarea id="f-zonas" placeholder="Z1: Entrada Principal&#10;Z2: Volumétrico Salón&#10;Z3: Magnético Cocina..." rows="4"></textarea>
+                <div class="form-group">
+                    <label>Marca de Grabador:</label>
+                    <select id="f-cctv-grab-marca" class="styled-select">
+                        <option value="Dahua">Dahua</option>
+                        <option value="Hikvision">Hikvision</option>
+                        <option value="Vesta">Vesta</option>
+                        <option value="Imou">Imou</option>
+                        <option value="Otros">Otros</option>
+                    </select>
+                    <input type="text" id="f-cctv-grab-otro" placeholder="Especificar marca/modelo de grabador" style="display:none; margin-top:6px;">
+                </div>
+
+                <div class="form-group">
+                    <label>Tecnología del Grabador:</label>
+                    <select id="f-cctv-tipo" class="styled-select">
+                        <option value="IP">IP</option>
+                        <option value="HD">HD (Analógico / HDCVI / TVI)</option>
+                    </select>
+                </div>
+
+                <h4>📹 Canales / Cámaras (32 Canales)</h4>
+                <div class="table-container scrollable-box" id="cctv-channels-list"></div>
+
+                <h3>🔔 Sistema de Alarmas</h3>
+                <div class="form-group">
+                    <label>Marca / Tipo de Central:</label>
+                    <select id="f-alarm-marca" class="styled-select">
+                        <option value="Ajax">Ajax</option>
+                        <option value="Hikvision">Hikvision</option>
+                        <option value="Vesta">Vesta</option>
+                        <option value="DSC">DSC</option>
+                        <option value="Risco">Risco</option>
+                        <option value="Otro">Otro</option>
+                    </select>
+                    <input type="text" id="f-alarm-otro" placeholder="Especificar marca y modelo de central" style="display:none; margin-top:6px;">
+                </div>
+
+                <h4>🚨 Mapeo de Zonas</h4>
+                <div class="table-container scrollable-box" id="alarm-zones-list"></div>
+                <button type="button" class="btn-add" id="btn-add-zone">➕ Añadir más zonas</button>
 
                 <h3>📝 Observaciones y Credenciales</h3>
                 <textarea id="f-observaciones" placeholder="Claves de usuario, notas de acceso o pendientes..." rows="3"></textarea>
@@ -300,13 +351,58 @@ const AppUI = {
             </div>
         `;
 
+        // Generar 32 canales CCTV
+        const cctvList = document.getElementById('cctv-channels-list');
+        let channelsHtml = '';
+        for (let i = 1; i <= 32; i++) {
+            channelsHtml += `
+                <div class="grid-row channel-row">
+                    <span class="row-num">CH${i}</span>
+                    <input type="text" id="f-ch-name-${i}" placeholder="Nombre cámara ${i}">
+                    <input type="text" id="f-ch-ip-${i}" placeholder="IP">
+                    <input type="text" id="f-ch-port-${i}" placeholder="Puerto">
+                </div>
+            `;
+        }
+        cctvList.innerHTML = channelsHtml;
+
+        // Generar zonas iniciales de Alarma (30 zonas)
+        this.renderZones();
+
+        // Listeners para selects "Otros"
+        const camSelect = document.getElementById('f-cctv-cam-marca');
+        const camOtroInput = document.getElementById('f-cctv-cam-otro');
+        camSelect.addEventListener('change', () => {
+            camOtroInput.style.display = camSelect.value === 'Otros' ? 'block' : 'none';
+        });
+
+        const grabSelect = document.getElementById('f-cctv-grab-marca');
+        const grabOtroInput = document.getElementById('f-cctv-grab-otro');
+        grabSelect.addEventListener('change', () => {
+            grabOtroInput.style.display = grabSelect.value === 'Otros' ? 'block' : 'none';
+        });
+
+        const alarmSelect = document.getElementById('f-alarm-marca');
+        const alarmOtroInput = document.getElementById('f-alarm-otro');
+        alarmSelect.addEventListener('change', () => {
+            alarmOtroInput.style.display = alarmSelect.value === 'Otro' ? 'block' : 'none';
+        });
+
+        // Botón añadir más zonas
+        document.getElementById('btn-add-zone')?.addEventListener('click', () => {
+            this.totalZones += 5;
+            this.renderZones();
+        });
+
+        // Evento Copiar al Portapapeles
         document.getElementById('btn-copy-ficha')?.addEventListener('click', () => {
             const texto = this.generarTextoFicha();
             navigator.clipboard.writeText(texto).then(() => {
-                alert('✅ Ficha copiada al portapapeles. Abre la app Notas y pégala.');
+                alert('✅ Ficha completa copiada al portapapeles. Abre Notas y pégala.');
             });
         });
 
+        // Evento Descargar TXT
         document.getElementById('btn-download-ficha')?.addEventListener('click', () => {
             const texto = this.generarTextoFicha();
             const blob = new Blob([texto], { type: 'text/plain;charset=utf-8' });
@@ -318,8 +414,86 @@ const AppUI = {
         });
     },
 
+    renderZones() {
+        const zonesList = document.getElementById('alarm-zones-list');
+        if (!zonesList) return;
+
+        // Guardar valores ya escritos antes de re-renderizar
+        const currentVals = {};
+        for (let i = 1; i <= this.totalZones; i++) {
+            const name = document.getElementById(`f-z-name-${i}`)?.value;
+            const type = document.getElementById(`f-z-type-${i}`)?.value;
+            if (name || type) currentVals[i] = { name, type };
+        }
+
+        let zonesHtml = '';
+        for (let i = 1; i <= this.totalZones; i++) {
+            zonesHtml += `
+                <div class="grid-row zone-row">
+                    <span class="row-num">Z${i}</span>
+                    <input type="text" id="f-z-name-${i}" placeholder="Ubicación / Detector Z${i}">
+                    <select id="f-z-type-${i}" class="styled-select compact">
+                        <option value="Volumétrico">Volumétrico</option>
+                        <option value="Magnético">Magnético</option>
+                        <option value="Exterior">Exterior</option>
+                        <option value="Cortina">Cortina</option>
+                        <option value="Sombra">Sombra</option>
+                        <option value="Humo / Incendio">Humo / Incendio</option>
+                        <option value="Teclado / Sirena">Teclado / Sirena</option>
+                        <option value="Otro">Otro</option>
+                    </select>
+                </div>
+            `;
+        }
+        zonesList.innerHTML = zonesHtml;
+
+        // Restaurar valores guardados
+        Object.keys(currentVals).forEach(i => {
+            if (document.getElementById(`f-z-name-${i}`)) document.getElementById(`f-z-name-${i}`).value = currentVals[i].name || '';
+            if (document.getElementById(`f-z-type-${i}`)) document.getElementById(`f-z-type-${i}`).value = currentVals[i].type || 'Volumétrico';
+        });
+    },
+
     generarTextoFicha() {
         const getVal = id => document.getElementById(id)?.value || 'N/A';
+
+        // Marca Cámaras
+        let camMarca = getVal('f-cctv-cam-marca');
+        if (camMarca === 'Otros') camMarca = getVal('f-cctv-cam-otro') || 'Otros';
+
+        // Marca Grabador
+        let grabMarca = getVal('f-cctv-grab-marca');
+        if (grabMarca === 'Otros') grabMarca = getVal('f-cctv-grab-otro') || 'Otros';
+
+        // Marca Alarma
+        let alarmMarca = getVal('f-alarm-marca');
+        if (alarmMarca === 'Otro') alarmMarca = getVal('f-alarm-otro') || 'Otro';
+
+        // Recopilar Canales CCTV activos
+        let canalesText = '';
+        for (let i = 1; i <= 32; i++) {
+            const name = getVal(`f-ch-name-${i}`);
+            const ip = getVal(`f-ch-ip-${i}`);
+            const port = getVal(`f-ch-port-${i}`);
+
+            if (name !== 'N/A' && name.trim() !== '') {
+                canalesText += `CH${i}: ${name} | IP: ${ip} | Puerto: ${port}\n`;
+            }
+        }
+        if (!canalesText) canalesText = 'Sin canales registrados.\n';
+
+        // Recopilar Zonas de Alarma activas
+        let zonasText = '';
+        for (let i = 1; i <= this.totalZones; i++) {
+            const name = getVal(`f-z-name-${i}`);
+            const type = getVal(`f-z-type-${i}`);
+
+            if (name !== 'N/A' && name.trim() !== '') {
+                zonasText += `Z${i}: ${name} (${type})\n`;
+            }
+        }
+        if (!zonasText) zonasText = 'Sin zonas registradas.\n';
+
         return `========================================
 FICHA TÉCNICA DE INSTALACIÓN - A7 SEGURIDAD
 ========================================
@@ -332,13 +506,18 @@ IP ASIGNADA: ${getVal('f-ip')}
 GATEWAY: ${getVal('f-gateway')}
 PUERTOS: ${getVal('f-puertos')}
 
---- EQUIPOS INSTALADOS ---
-CENTRAL / NVR: ${getVal('f-central')}
-DETECTORES / CÁMARAS: ${getVal('f-camaras')}
+--- SISTEMA CCTV ---
+CÁMARAS MARCA: ${camMarca}
+GRABADOR MARCA: ${grabMarca}
+TECNOLOGÍA GRABADOR: ${getVal('f-cctv-tipo')}
 
---- MAPEO DE ZONAS / CANALES ---
-${getVal('f-zonas')}
+--- CANALES CCTV REGISTRADOS ---
+${canalesText}
+--- SISTEMA DE ALARMA ---
+CENTRAL / MARCA: ${alarmMarca}
 
+--- MAPEO DE ZONAS REGISTRADAS ---
+${zonasText}
 --- OBSERVACIONES Y CREDENCIALES ---
 ${getVal('f-observaciones')}
 ========================================`;
