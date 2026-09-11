@@ -1,11 +1,10 @@
-const CACHE_NAME = 'a7-seguridad-v3';
+const CACHE_NAME = 'a7-seguridad-v4';
 
 const urlsToCache = [
   './',
   './index.html',
   './styles.css',
   './app.js',
-  './js/ficha.js',
   './manifest.json'
 ];
 
@@ -31,14 +30,6 @@ self.addEventListener('activate', (event) => {
     })
   );
   self.clients.claim();
-});
-
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    })
-  );
 });
 
 self.addEventListener('fetch', (event) => {
