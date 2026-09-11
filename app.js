@@ -3,7 +3,7 @@
  * Los servicios están desacoplados de la interfaz.
  */
 
-// 1. Servicio de Almacenamiento (Fase 1: LocalStorage. Fase 2: API/Nube)
+// 1. Servicio de Almacenamiento
 class StorageService {
     static getFavorites() {
         return JSON.parse(localStorage.getItem('biblioteca_favoritos')) || [];
@@ -27,9 +27,9 @@ class StorageService {
     }
     static addToHistory(id) {
         let history = this.getHistory();
-        history = history.filter(hId => hId !== id); // Quitar si existe
-        history.unshift(id); // Añadir al principio
-        if (history.length > 10) history.pop(); // Mantener solo 10
+        history = history.filter(hId => hId !== id);
+        history.unshift(id);
+        if (history.length > 10) history.pop();
         localStorage.setItem('biblioteca_historial', JSON.stringify(history));
     }
 
@@ -72,20 +72,16 @@ class DataService {
         return cats.sort();
     }
 
-    // Buscador Avanzado (Ignora acentos, mayúsculas y busca en múltiples campos)
     static search(query, category = "", brand = "") {
         const normalize = str => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
         const q = normalize(query);
 
         return this.manuals.filter(m => {
-            // Filtros exactos
             if (category && m.categoria !== category) return false;
             if (brand && m.marca !== brand) return false;
-
-            // Búsqueda de texto libre
             if (!q) return true;
             
-            const textToSearch = normalize(`${m.marca} ${m.modelo} ${m.categoria} ${m.tipo} ${m.descripcion} ${m.tags.join(' ')}`);
+            const textToSearch = normalize(`${m.marca} ${m.modelo} ${m.categoria} ${m.tipo} ${m.descripcion} ${m.tags ? m.tags.join(' ') : ''}`);
             return textToSearch.includes(q);
         });
     }
@@ -121,19 +117,21 @@ const AppUI = {
         });
 
         // Buscadores
-        this.mainSearch.addEventListener('focus', () => {
-            this.navigate('view-search');
-            this.secSearch.focus();
-        });
+        if(this.mainSearch) {
+            this.mainSearch.addEventListener('focus', () => {
+                this.navigate('view-search');
+                if(this.secSearch) this.secSearch.focus();
+            });
+        }
         
-        this.secSearch.addEventListener('input', () => this.renderSearch());
-        this.filterCat.addEventListener('change', () => this.renderSearch());
-        this.filterBrand.addEventListener('change', () => this.renderSearch());
+        if(this.secSearch) this.secSearch.addEventListener('input', () => this.renderSearch());
+        if(this.filterCat) this.filterCat.addEventListener('change', () => this.renderSearch());
+        if(this.filterBrand) this.filterBrand.addEventListener('change', () => this.renderSearch());
 
         // Botones de categoría rápida
         document.querySelectorAll('.cat-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                this.filterCat.value = btn.dataset.cat;
+                if(this.filterCat) this.filterCat.value = btn.dataset.cat;
                 this.navigate('view-search');
                 this.renderSearch();
             });
@@ -141,16 +139,21 @@ const AppUI = {
 
         // Modo Oscuro
         const themeToggle = document.getElementById('theme-toggle');
-        themeToggle.addEventListener('change', (e) => {
-            const theme = e.target.checked ? 'dark' : 'light';
-            StorageService.setTheme(theme);
-            this.applyTheme(theme);
-        });
+        if(themeToggle) {
+            themeToggle.addEventListener('change', (e) => {
+                const theme = e.target.checked ? 'dark' : 'light';
+                StorageService.setTheme(theme);
+                this.applyTheme(theme);
+            });
+        }
 
         // Botón Volver de Ficha
-        document.getElementById('btn-back').addEventListener('click', () => {
-            this.navigate(this.lastView || 'view-home');
-        });
+        const btnBack = document.getElementById('btn-back');
+        if(btnBack) {
+            btnBack.addEventListener('click', () => {
+                this.navigate(this.lastView || 'view-home');
+            });
+        }
     },
 
     async initializeApp() {
@@ -173,14 +176,9 @@ const AppUI = {
 
         if (viewId === 'view-home') this.renderHome();
         if (viewId === 'view-favorites') this.renderFavoritesFull();
-        
-        // Cargar Ficha Técnica al entrar en la pestaña
-        if (viewId === 'view-ficha' && window.initFichaTecnica) {
-            window.initFichaTecnica();
-        }
+        if (viewId === 'view-ficha') this.renderFichaForm();
     },
 
-    // Generadores de HTML
     getIconForCategory(cat) {
         const icons = { 'Alarmas': '🔔', 'CCTV': '📹', 'Redes': '🌐', 'Control de Acceso': '🚪', 'Videoporteros': '📞', 'Electricidad': '⚡' };
         return icons[cat] || '🔧';
@@ -203,42 +201,48 @@ const AppUI = {
         return card;
     },
 
-    // Renderizados de Vistas
     renderHome() {
-        // Historial
         const histContainer = document.getElementById('recent-list');
-        histContainer.innerHTML = '';
-        const historyIds = StorageService.getHistory();
-        if (historyIds.length === 0) histContainer.innerHTML = '<p style="color:var(--text-muted); font-size:14px;">No hay consultas recientes.</p>';
-        historyIds.forEach(id => {
-            const item = DataService.getById(id);
-            if(item) histContainer.appendChild(this.createItemCard(item));
-        });
+        if(histContainer) {
+            histContainer.innerHTML = '';
+            const historyIds = StorageService.getHistory();
+            if (historyIds.length === 0) histContainer.innerHTML = '<p style="color:var(--text-muted); font-size:14px;">No hay consultas recientes.</p>';
+            historyIds.forEach(id => {
+                const item = DataService.getById(id);
+                if(item) histContainer.appendChild(this.createItemCard(item));
+            });
+        }
 
-        // Favoritos en Home (Max 3)
         const favContainer = document.getElementById('favorites-list-home');
-        favContainer.innerHTML = '';
-        const favIds = StorageService.getFavorites().slice(0, 3);
-        if (favIds.length === 0) favContainer.innerHTML = '<p style="color:var(--text-muted); font-size:14px;">Aún no tienes favoritos.</p>';
-        favIds.forEach(id => {
-            const item = DataService.getById(id);
-            if(item) favContainer.appendChild(this.createItemCard(item));
-        });
+        if(favContainer) {
+            favContainer.innerHTML = '';
+            const favIds = StorageService.getFavorites().slice(0, 3);
+            if (favIds.length === 0) favContainer.innerHTML = '<p style="color:var(--text-muted); font-size:14px;">Aún no tienes favoritos.</p>';
+            favIds.forEach(id => {
+                const item = DataService.getById(id);
+                if(item) favContainer.appendChild(this.createItemCard(item));
+            });
+        }
     },
 
     populateFilters() {
-        DataService.getCategories().forEach(cat => {
-            this.filterCat.add(new Option(cat, cat));
-        });
-        DataService.getBrands().forEach(brand => {
-            this.filterBrand.add(new Option(brand, brand));
-        });
+        if(this.filterCat) {
+            DataService.getCategories().forEach(cat => {
+                this.filterCat.add(new Option(cat, cat));
+            });
+        }
+        if(this.filterBrand) {
+            DataService.getBrands().forEach(brand => {
+                this.filterBrand.add(new Option(brand, brand));
+            });
+        }
     },
 
     renderSearch() {
-        const query = this.secSearch.value;
-        const cat = this.filterCat.value;
-        const brand = this.filterBrand.value;
+        if(!this.searchResults) return;
+        const query = this.secSearch ? this.secSearch.value : '';
+        const cat = this.filterCat ? this.filterCat.value : '';
+        const brand = this.filterBrand ? this.filterBrand.value : '';
         
         const results = DataService.search(query, cat, brand);
         this.searchResults.innerHTML = '';
@@ -253,6 +257,7 @@ const AppUI = {
 
     renderFavoritesFull() {
         const favContainer = document.getElementById('favorites-list-full');
+        if(!favContainer) return;
         favContainer.innerHTML = '';
         const favIds = StorageService.getFavorites();
         if (favIds.length === 0) favContainer.innerHTML = '<p style="text-align:center; margin-top:20px; color:var(--text-muted);">Tu biblioteca está vacía.</p>';
@@ -262,6 +267,18 @@ const AppUI = {
         });
     },
 
+    renderFichaForm() {
+        const container = document.getElementById('ficha-form-container');
+        if(!container) return;
+        container.innerHTML = `
+            <div style="background:var(--card-bg, #fff); padding:15px; border-radius:10px; box-shadow:0 2px 5px rgba(0,0,0,0.1);">
+                <p style="margin-bottom:10px;">Formulario de Ficha Técnica de Instalación activo.</p>
+                <input type="text" placeholder="Cliente / Instalación" style="width:100%; padding:10px; margin-bottom:10px; border:1px solid #ccc; border-radius:5px;">
+                <textarea placeholder="Observaciones técnicas" style="width:100%; padding:10px; height:80px; border:1px solid #ccc; border-radius:5px;"></textarea>
+            </div>
+        `;
+    },
+
     openDetail(id) {
         const item = DataService.getById(id);
         if(!item) return;
@@ -269,13 +286,15 @@ const AppUI = {
         StorageService.addToHistory(id);
 
         const isFav = StorageService.isFavorite(id);
-        const tagsHtml = item.tags.map(t => `<span>${t}</span>`).join('');
+        const tagsHtml = item.tags ? item.tags.map(t => `<span>${t}</span>`).join('') : '';
         
         let docsHtml = '';
-        if(item.documentos.manual) docsHtml += `<a href="${item.documentos.manual}" target="_blank" class="doc-btn">📕 Manual de usuario</a>`;
-        if(item.documentos.instalacion) docsHtml += `<a href="${item.documentos.instalacion}" target="_blank" class="doc-btn">🛠️ Manual de instalación</a>`;
-        if(item.documentos.ficha) docsHtml += `<a href="${item.documentos.ficha}" target="_blank" class="doc-btn secondary">⚙️ Ficha técnica</a>`;
-        if(item.documentos.firmware) docsHtml += `<a href="${item.documentos.firmware}" target="_blank" class="doc-btn secondary">💾 Firmware</a>`;
+        if(item.documentos) {
+            if(item.documentos.manual) docsHtml += `<a href="${item.documentos.manual}" target="_blank" class="doc-btn">📕 Manual de usuario</a>`;
+            if(item.documentos.instalacion) docsHtml += `<a href="${item.documentos.instalacion}" target="_blank" class="doc-btn">🛠️ Manual de instalación</a>`;
+            if(item.documentos.ficha) docsHtml += `<a href="${item.documentos.ficha}" target="_blank" class="doc-btn secondary">⚙️ Ficha técnica</a>`;
+            if(item.documentos.firmware) docsHtml += `<a href="${item.documentos.firmware}" target="_blank" class="doc-btn secondary">💾 Firmware</a>`;
+        }
         if(item.fabricante) docsHtml += `<a href="${item.fabricante}" target="_blank" class="doc-btn secondary">🔗 Web del fabricante</a>`;
 
         this.detailContent.innerHTML = `
@@ -283,7 +302,7 @@ const AppUI = {
                 <div style="font-size:32px; margin-bottom:8px;">${this.getIconForCategory(item.categoria)}</div>
                 <div style="color:var(--text-muted); font-size:14px;">${item.categoria} &gt; ${item.tipo}</div>
                 <h2>${item.marca} ${item.modelo}</h2>
-                <p>${item.descripcion}</p>
+                <p>${item.descripcion || ''}</p>
                 <div class="detail-tags" style="margin-top:12px;">${tagsHtml}</div>
             </div>
             
@@ -296,11 +315,14 @@ const AppUI = {
             </button>
         `;
 
-        document.getElementById('btn-toggle-fav').addEventListener('click', (e) => {
-            const isNowFav = StorageService.toggleFavorite(id);
-            e.target.classList.toggle('is-fav', isNowFav);
-            e.target.innerHTML = isNowFav ? '⭐ Quitar de favoritos' : '☆ Añadir a favoritos';
-        });
+        const btnToggle = document.getElementById('btn-toggle-fav');
+        if(btnToggle) {
+            btnToggle.addEventListener('click', (e) => {
+                const isNowFav = StorageService.toggleFavorite(id);
+                e.target.classList.toggle('is-fav', isNowFav);
+                e.target.innerHTML = isNowFav ? '⭐ Quitar de favoritos' : '☆ Añadir a favoritos';
+            });
+        }
 
         this.navigate('view-detail');
     },
@@ -323,16 +345,6 @@ const AppUI = {
     }
 };
 
-// Iniciar aplicación
 document.addEventListener('DOMContentLoaded', () => {
     AppUI.init();
 });
-
-// Registro del Service Worker
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-            .then(reg => console.log('Service Worker registrado', reg))
-            .catch(err => console.error('Error registrando Service Worker', err));
-    });
-}
