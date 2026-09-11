@@ -320,6 +320,41 @@ const AppUI = {
                     </select>
                 </div>
 
+                <!-- CONEXIONES REMOTAS DEL GRABADOR -->
+                <div class="ficha-subsection">
+                    <h4 class="subsection-title">📡 Conexiones Remotas</h4>
+                    <div class="remote-connections-list">
+                        <div class="remote-row">
+                            <label class="checkbox-tag">
+                                <input type="checkbox" class="remote-check" data-target="p2p-input">
+                                <span>P2P</span>
+                            </label>
+                            <input type="text" id="p2p-input" class="ficha-input remote-input" placeholder="Datos P2P (Nº Serie / ID)" disabled>
+                        </div>
+                        <div class="remote-row">
+                            <label class="checkbox-tag">
+                                <input type="checkbox" class="remote-check" data-target="dns-input">
+                                <span>DNS</span>
+                            </label>
+                            <input type="text" id="dns-input" class="ficha-input remote-input" placeholder="Dominio / DDNS (ej: mi.ddns.com)" disabled>
+                        </div>
+                        <div class="remote-row">
+                            <label class="checkbox-tag">
+                                <input type="checkbox" class="remote-check" data-target="vpn-input">
+                                <span>VPN</span>
+                            </label>
+                            <input type="text" id="vpn-input" class="ficha-input remote-input" placeholder="Datos VPN (IP / Servidor)" disabled>
+                        </div>
+                        <div class="remote-row">
+                            <label class="checkbox-tag">
+                                <input type="checkbox" class="remote-check" data-target="otros-input">
+                                <span>Otros</span>
+                            </label>
+                            <input type="text" id="otros-input" class="ficha-input remote-input" placeholder="Especificar detalles..." disabled>
+                        </div>
+                    </div>
+                </div>
+
                 <h4>📹 Canales / Cámaras (32 Canales)</h4>
                 <div class="table-container scrollable-box" id="cctv-channels-list"></div>
 
@@ -368,6 +403,22 @@ const AppUI = {
 
         // Generar zonas iniciales de Alarma (30 zonas)
         this.renderZones();
+
+        // Listeners para Conexiones Remotas (habilitar/deshabilitar campos)
+        container.querySelectorAll('.remote-check').forEach(chk => {
+            chk.addEventListener('change', (e) => {
+                const targetId = e.target.getAttribute('data-target');
+                const targetInput = document.getElementById(targetId);
+                if (targetInput) {
+                    targetInput.disabled = !e.target.checked;
+                    if (e.target.checked) {
+                        targetInput.focus();
+                    } else {
+                        targetInput.value = '';
+                    }
+                }
+            });
+        });
 
         // Listeners para selects "Otros"
         const camSelect = document.getElementById('f-cctv-cam-marca');
@@ -465,6 +516,22 @@ const AppUI = {
         let grabMarca = getVal('f-cctv-grab-marca');
         if (grabMarca === 'Otros') grabMarca = getVal('f-cctv-grab-otro') || 'Otros';
 
+        // Conexiones Remotas seleccionadas
+        let remotasArr = [];
+        const container = document.getElementById('ficha-form-container');
+        
+        const p2pChk = container?.querySelector('[data-target="p2p-input"]')?.checked;
+        const dnsChk = container?.querySelector('[data-target="dns-input"]')?.checked;
+        const vpnChk = container?.querySelector('[data-target="vpn-input"]')?.checked;
+        const otrosChk = container?.querySelector('[data-target="otros-input"]')?.checked;
+
+        if (p2pChk) remotasArr.push(`P2P: ${getVal('p2p-input')}`);
+        if (dnsChk) remotasArr.push(`DNS: ${getVal('dns-input')}`);
+        if (vpnChk) remotasArr.push(`VPN: ${getVal('vpn-input')}`);
+        if (otrosChk) remotasArr.push(`Otros: ${getVal('otros-input')}`);
+
+        const remotasText = remotasArr.length > 0 ? remotasArr.join(' | ') : 'Sin configuración remota';
+
         // Marca Alarma
         let alarmMarca = getVal('f-alarm-marca');
         if (alarmMarca === 'Otro') alarmMarca = getVal('f-alarm-otro') || 'Otro';
@@ -510,6 +577,7 @@ PUERTOS: ${getVal('f-puertos')}
 CÁMARAS MARCA: ${camMarca}
 GRABADOR MARCA: ${grabMarca}
 TECNOLOGÍA GRABADOR: ${getVal('f-cctv-tipo')}
+CONEXIONES REMOTAS: ${remotasText}
 
 --- CANALES CCTV REGISTRADOS ---
 ${canalesText}
