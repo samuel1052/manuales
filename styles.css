@@ -1,242 +1,222 @@
-
-/* ==========================================================================
-   NUEVA SECCIÓN: FICHA TÉCNICA (Adaptado a tu diseño y Modo Oscuro)
-   ========================================================================== */
-
-/* Utilidad */
-.hidden { 
-    display: none !important; 
+:root {
+    --primary: #0d6efd;
+    --primary-dark: #0b5ed7;
+    --bg-color: #f8f9fa;
+    --card-bg: #ffffff;
+    --text-color: #212529;
+    --text-muted: #6c757d;
+    --border-color: #dee2e6;
+    --nav-bg: #ffffff;
 }
 
-/* Acciones superiores (Borrar / Nueva) */
-.ft-top-actions {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 16px;
+body.dark-mode {
+    --bg-color: #121212;
+    --card-bg: #1e1e1e;
+    --text-color: #e0e0e0;
+    --text-muted: #a0a0a0;
+    --border-color: #333333;
+    --nav-bg: #1e1e1e;
 }
 
-/* Tarjetas y Contenedores */
-.ft-card {
-    background-color: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 16px;
-    margin-bottom: 16px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-.ft-card-title {
-    margin: 0 0 16px 0;
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text-main);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.ft-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-}
-
-/* Formulario Grid adaptable a móvil */
-.ft-form-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 12px;
-}
-
-.ft-field {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.ft-field.ft-full-width {
-    grid-column: 1 / -1;
-}
-
-.ft-field label {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-/* Inputs, Selects y Textareas */
-.ft-input {
-    width: 100%;
-    padding: 12px;
-    font-size: 15px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
+body {
     background-color: var(--bg-color);
-    color: var(--text-main);
-    outline: none;
-    transition: border-color 0.2s;
-    -webkit-appearance: none;
+    color: var(--text-color);
+    padding-bottom: 80px;
+    padding-top: 60px;
 }
 
-.ft-input:focus {
-    border-color: var(--primary);
-}
-
-.ft-textarea {
-    resize: vertical;
-    font-family: inherit;
-}
-
-.ft-textarea-code {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-size: 13px;
-    line-height: 1.5;
-    background-color: var(--bg-color);
-    color: var(--text-main);
-    white-space: pre-wrap;
-}
-
-/* Tarjetas de Zonas y Cámaras */
-.ft-zonas-list, .ft-camaras-list {
+/* Header */
+.app-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50px;
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--border-color);
     display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.ft-zona-card {
-    background-color: var(--bg-color);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 14px;
-}
-
-.ft-zona-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-}
-
-.ft-zona-num {
-    font-weight: 700;
-    font-size: 14px;
-    color: var(--text-main);
-}
-
-/* Badges de Estado */
-.ft-zona-badge {
-    font-size: 11px;
-    font-weight: 600;
-    padding: 3px 8px;
-    border-radius: 12px;
-    text-transform: uppercase;
-}
-
-.ft-badge-activa { 
-    background-color: rgba(16, 185, 129, 0.15); 
-    color: #10b981; 
-}
-.ft-badge-desactivada { 
-    background-color: rgba(245, 158, 11, 0.15); 
-    color: #f59e0b; 
-}
-.ft-badge-anulada { 
-    background-color: rgba(239, 68, 68, 0.15); 
-    color: #ef4444; 
-}
-.ft-badge-pendiente-de-configurar { 
-    background-color: rgba(107, 114, 128, 0.15); 
-    color: var(--text-muted); 
-}
-
-.ft-zona-actions {
-    display: flex;
-    gap: 8px;
-    margin-top: 12px;
-    justify-content: flex-end;
-}
-
-/* Botones de la Ficha */
-.ft-btn {
-    padding: 10px 14px;
-    border-radius: 8px;
-    border: none;
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    transition: opacity 0.2s, transform 0.1s;
+    z-index: 1000;
 }
 
-.ft-btn:active {
-    transform: scale(0.98);
+.app-header h1 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary);
 }
 
-.ft-btn-primary { 
-    background-color: var(--primary); 
-    color: #ffffff; 
+/* Vistas */
+.app-main {
+    padding: 15px;
+    max-width: 600px;
+    margin: 0 auto;
 }
 
-.ft-btn-success { 
-    background-color: #10b981; 
-    color: #ffffff; 
+.view {
+    display: none;
 }
 
-.ft-btn-danger { 
-    background-color: #ef4444; 
-    color: #ffffff; 
+.view.active {
+    display: block;
 }
 
-.ft-btn-secondary { 
-    background-color: var(--card-bg); 
-    color: var(--text-main); 
-    border: 1px solid var(--border); 
+/* Buscador y Controles */
+.search-container input, .search-header input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    font-size: 15px;
+    background: var(--card-bg);
+    color: var(--text-color);
+    margin-bottom: 15px;
+    outline: none;
 }
 
-.ft-btn-small { 
-    padding: 6px 10px; 
-    font-size: 12px; 
+.section-title {
+    font-weight: 600;
+    font-size: 16px;
+    margin: 15px 0 10px 0;
 }
 
-.ft-btn-large { 
-    width: 100%; 
-    padding: 16px; 
-    font-size: 16px; 
-    margin-top: 8px;
+/* Categorías */
+.categories-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 10px;
+    margin-bottom: 20px;
 }
 
-.ft-export-buttons {
+.cat-btn {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 5px;
+    font-size: 13px;
+    color: var(--text-color);
+    cursor: pointer;
+    text-align: center;
+}
+
+/* Tarjetas de Lista */
+.item-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 12px 15px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+}
+
+.item-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.item-icon {
+    font-size: 22px;
+}
+
+.item-card-info h3 {
+    font-size: 15px;
+    margin-bottom: 2px;
+}
+
+.item-card-info p {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+/* Navegación Inferior */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: var(--nav-bg);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 1000;
+}
+
+.nav-item {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    margin-top: 16px;
+    align-items: center;
+    text-decoration: none;
+    color: var(--text-muted);
+    font-size: 11px;
 }
 
-/* Notificación Flotante (Toast) */
-.ft-toast {
-    position: fixed;
-    bottom: calc(80px + var(--safe-bottom));
-    left: 50%;
-    transform: translateX(-50%) translateY(100px);
-    background-color: var(--text-main);
-    color: var(--bg-color);
-    padding: 10px 20px;
-    border-radius: 20px;
-    font-size: 13px;
+.nav-item.active {
+    color: var(--primary);
     font-weight: 600;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    z-index: 1000;
-    pointer-events: none;
 }
 
-.ft-toast.show {
-    transform: translateX(-50%) translateY(0);
+.nav-icon {
+    font-size: 20px;
+    margin-bottom: 2px;
+}
+
+/* Botones e Interfaz de Detalle */
+.back-btn {
+    background: none;
+    border: none;
+    color: var(--primary);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 15px;
+}
+
+.doc-btn {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 8px;
+    background: var(--primary);
+    color: #fff;
+    text-align: center;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.doc-btn.secondary {
+    background: var(--card-bg);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+}
+
+.fav-btn-large {
+    width: 100%;
+    padding: 12px;
+    margin-top: 15px;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    color: var(--text-color);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.fav-btn-large.is-fav {
+    background: #fff3cd;
+    color: #664d03;
+    border-color: #ffe69c;
 }
