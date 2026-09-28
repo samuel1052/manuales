@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -6,24 +5,23 @@
 
     <meta
         name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+        content="width=device-width, initial-scale=1, viewport-fit=cover"
     >
 
-    <title>A7 SEGURIDAD</title>
+    <title>Biblioteca Técnica</title>
 
-    <!-- PWA -->
-    <link rel="manifest" href="manifest.json">
+    <meta
+        name="description"
+        content="Biblioteca técnica y herramientas para instaladores de seguridad."
+    >
 
-    <!-- CSS -->
-    <link rel="stylesheet" href="styles.css?v=3">
-
-    <!-- Tema -->
     <meta name="theme-color" content="#0d6efd">
 
-    <!-- Icono iPhone / iPad -->
+    <link rel="manifest" href="./manifest.json">
+
     <link
         rel="apple-touch-icon"
-        href="assets/icons/icon-192.png"
+        href="./assets/icons/icon-192.png"
     >
 
     <meta
@@ -38,490 +36,338 @@
 
     <meta
         name="apple-mobile-web-app-title"
-        content="A7 Seguridad"
+        content="Biblioteca Técnica"
     >
+
+    <link rel="stylesheet" href="./styles.css?v=1.2.0">
 </head>
 
 <body class="light-mode">
 
-    <!-- =========================
-         CABECERA
-    ========================== -->
+<header class="app-header">
+    <div class="header-content">
+        <div>
+            <h1 id="header-title">BIBLIOTECA TÉCNICA</h1>
+            <div id="app-status" class="header-status">Cargando biblioteca...</div>
+        </div>
 
-    <header class="app-header">
+        <button
+            id="header-action"
+            class="header-action"
+            type="button"
+            aria-label="Información"
+        >
+            ⋮
+        </button>
+    </div>
+</header>
 
-        <div class="header-content">
+<main class="app-main">
 
-            <h1 id="header-title">
-                A7 SEGURIDAD
-            </h1>
+    <!-- INICIO -->
+    <section id="view-home" class="view active">
 
-            <button
-                id="header-action"
-                class="header-action"
-                aria-label="Acciones"
-                type="button"
+        <div class="hero-card">
+            <div class="hero-icon">🛠️</div>
+
+            <div>
+                <div class="hero-title">Biblioteca del técnico</div>
+                <div class="hero-subtitle">
+                    Manuales, equipos y herramientas técnicas
+                </div>
+            </div>
+        </div>
+
+        <div class="search-container">
+            <input
+                type="search"
+                id="main-search"
+                placeholder="🔎 Buscar marca, modelo o equipo..."
+                autocomplete="off"
+                enterkeyhint="search"
             >
-                ⋮
+        </div>
+
+        <div class="section-title">
+            Acceso rápido
+        </div>
+
+        <div class="categories-grid">
+
+            <button class="cat-btn" data-cat="Alarmas" type="button">
+                <span>🚨</span>
+                <strong>Alarmas</strong>
+            </button>
+
+            <button class="cat-btn" data-cat="CCTV" type="button">
+                <span>📹</span>
+                <strong>CCTV</strong>
+            </button>
+
+            <button class="cat-btn" data-cat="Redes" type="button">
+                <span>🌐</span>
+                <strong>Redes</strong>
+            </button>
+
+            <button class="cat-btn" data-cat="Control de Acceso" type="button">
+                <span>🚪</span>
+                <strong>Accesos</strong>
+            </button>
+
+            <button class="cat-btn" data-cat="Videoporteros" type="button">
+                <span>📞</span>
+                <strong>Videoporteros</strong>
+            </button>
+
+            <button class="cat-btn" data-cat="Electricidad" type="button">
+                <span>⚡</span>
+                <strong>Electricidad</strong>
+            </button>
+
+            <button class="cat-btn" data-cat="Otros" type="button">
+                <span>🔧</span>
+                <strong>Otros</strong>
             </button>
 
         </div>
 
-    </header>
-
-
-    <!-- =========================
-         CONTENIDO PRINCIPAL
-    ========================== -->
-
-    <main
-        class="app-main"
-        id="app-main"
-    >
-
-
-        <!-- =====================
-             INICIO
-        ====================== -->
-
-        <section
-            id="view-home"
-            class="view active"
-        >
-
-            <div class="search-container">
-
-                <input
-                    type="text"
-                    id="main-search"
-                    placeholder="🔎 Buscar manual, marca, modelo..."
-                    autocomplete="off"
-                    enterkeyhint="search"
-                >
-
-            </div>
-
-
-            <div class="section-title">
-                Acceso rápido
-            </div>
-
-
-            <div class="categories-grid">
-
-                <button
-                    class="cat-btn"
-                    data-cat="Alarmas"
-                    type="button"
-                >
-                    🚨 Alarmas
-                </button>
+        <div class="section-title">
+            🕘 Consultados recientemente
+        </div>
 
-                <button
-                    class="cat-btn"
-                    data-cat="CCTV"
-                    type="button"
-                >
-                    📹 CCTV
-                </button>
+        <div id="recent-list" class="items-list"></div>
 
-                <button
-                    class="cat-btn"
-                    data-cat="Redes"
-                    type="button"
-                >
-                    🌐 Redes
-                </button>
+        <div class="section-title">
+            ⭐ Favoritos
+        </div>
 
-                <button
-                    class="cat-btn"
-                    data-cat="Control de Acceso"
-                    type="button"
-                >
-                    🚪 Accesos
-                </button>
+        <div id="favorites-list-home" class="items-list"></div>
 
-                <button
-                    class="cat-btn"
-                    data-cat="Videoporteros"
-                    type="button"
-                >
-                    📞 Videoporteros
-                </button>
+    </section>
 
-                <button
-                    class="cat-btn"
-                    data-cat="Electricidad"
-                    type="button"
-                >
-                    ⚡ Electricidad
-                </button>
 
-                <button
-                    class="cat-btn"
-                    data-cat="Otros"
-                    type="button"
-                >
-                    🔧 Otros
-                </button>
+    <!-- BÚSQUEDA -->
+    <section id="view-search" class="view">
 
-            </div>
+        <div class="section-title">
+            🔎 Buscar equipo
+        </div>
 
+        <div class="search-header">
+            <input
+                type="search"
+                id="secondary-search"
+                placeholder="Buscar manual, marca o modelo..."
+                autocomplete="off"
+            >
+        </div>
 
-            <div class="section-title">
-                🕘 Consultados recientemente
-            </div>
+        <div class="filters-scroll">
 
-            <div
-                id="recent-list"
-                class="items-list"
-            ></div>
+            <select id="filter-category">
+                <option value="">Todas las categorías</option>
+            </select>
 
+            <select id="filter-brand">
+                <option value="">Todas las marcas</option>
+            </select>
 
-            <div class="section-title">
-                ⭐ Favoritos
-            </div>
+        </div>
 
-            <div
-                id="favorites-list-home"
-                class="items-list"
-            ></div>
+        <div
+            id="search-count"
+            class="result-count"
+        ></div>
 
-        </section>
+        <div id="search-results" class="items-list"></div>
 
+    </section>
 
 
-        <!-- =====================
-             BÚSQUEDA
-        ====================== -->
+    <!-- FICHA -->
+    <section id="view-ficha" class="view">
 
-        <section
-            id="view-search"
-            class="view"
-        >
+        <div class="section-title">
+            🔧 Ficha técnica de instalación
+        </div>
 
-            <div class="search-header">
+        <div class="info-banner">
+            La ficha se genera localmente en el dispositivo.
+            No introduzcas contraseñas ni credenciales sensibles.
+        </div>
 
-                <input
-                    type="text"
-                    id="secondary-search"
-                    placeholder="🔎 Buscar manual, marca o modelo..."
-                    autocomplete="off"
-                    enterkeyhint="search"
-                >
+        <div id="ficha-form-container"></div>
 
-            </div>
+    </section>
 
 
-            <div class="filters-scroll">
+    <!-- FAVORITOS -->
+    <section id="view-favorites" class="view">
 
-                <select id="filter-category">
-                    <option value="">
-                        Todas las categorías
-                    </option>
-                </select>
+        <div class="section-title">
+            ⭐ Mis favoritos
+        </div>
 
+        <div id="favorites-list-full" class="items-list"></div>
 
-                <select id="filter-brand">
-                    <option value="">
-                        Todas las marcas
-                    </option>
-                </select>
+    </section>
 
-            </div>
 
+    <!-- MÁS -->
+    <section id="view-more" class="view">
 
-            <div
-                id="search-results"
-                class="items-list"
-            ></div>
+        <div class="section-title">
+            ⚙️ Configuración
+        </div>
 
-        </section>
+        <div class="settings-card">
 
+            <div class="setting-item">
 
-
-        <!-- =====================
-             FICHA TÉCNICA
-        ====================== -->
-
-        <section
-            id="view-ficha"
-            class="view"
-        >
-
-            <div class="section-title">
-                🔧 Ficha Técnica de Instalación
-            </div>
-
-
-            <div
-                id="ficha-form-container"
-            ></div>
-
-        </section>
-
-
-
-        <!-- =====================
-             FAVORITOS
-        ====================== -->
-
-        <section
-            id="view-favorites"
-            class="view"
-        >
-
-            <div class="section-title">
-                ⭐ Mis Favoritos
-            </div>
-
-
-            <div
-                id="favorites-list-full"
-                class="items-list"
-            ></div>
-
-        </section>
-
-
-
-        <!-- =====================
-             MÁS / CONFIGURACIÓN
-        ====================== -->
-
-        <section
-            id="view-more"
-            class="view"
-        >
-
-            <div class="section-title">
-                ⚙️ Configuración
-            </div>
-
-
-            <div class="settings-card">
-
-                <div class="setting-item">
-
-                    <span>
-                        🌙 Modo Oscuro
-                    </span>
-
-
-                    <label class="switch">
-
-                        <input
-                            type="checkbox"
-                            id="theme-toggle"
-                        >
-
-                        <span class="slider round"></span>
-
-                    </label>
-
+                <div>
+                    <strong>Modo oscuro</strong>
+                    <div class="small-note">
+                        Cambiar apariencia de la aplicación
+                    </div>
                 </div>
 
-            </div>
-
-
-
-            <div class="section-title">
-                📥 Aplicación y modo offline
-            </div>
-
-
-            <div class="settings-card">
-
-                <p>
-                    Los manuales descargados pueden quedar
-                    disponibles para consulta sin conexión.
-                </p>
-
-
-                <button
-                    id="btn-clear-cache"
-                    class="btn secondary"
-                    type="button"
-                >
-                    🗑️ Limpiar descargas offline
-                </button>
-
-
-                <div
-                    id="offline-status"
-                    class="status-message"
-                ></div>
+                <label class="switch">
+                    <input
+                        type="checkbox"
+                        id="theme-toggle"
+                    >
+                    <span class="slider round"></span>
+                </label>
 
             </div>
 
+        </div>
 
 
-            <div class="section-title">
-                ☁️ Sincronización
-            </div>
+        <div class="section-title">
+            📥 Modo offline
+        </div>
 
+        <div class="settings-card">
 
-            <div class="settings-card disabled-card">
+            <strong>Manuales descargados</strong>
 
-                <p>
-                    Las funciones de cuenta, sincronización
-                    y copia de seguridad en la nube estarán
-                    disponibles en una versión posterior.
-                </p>
-
-
-                <button
-                    class="btn primary disabled"
-                    disabled
-                    type="button"
-                >
-                    🔐 Iniciar Sesión
-                </button>
-
-            </div>
-
-        </section>
-
-
-
-        <!-- =====================
-             DETALLE DEL MANUAL
-        ====================== -->
-
-        <section
-            id="view-detail"
-            class="view"
-        >
+            <p class="small-note">
+                Los PDF que descargues desde cada equipo pueden
+                consultarse sin conexión.
+            </p>
 
             <button
-                class="back-btn"
-                id="btn-back"
+                id="btn-clear-cache"
+                class="btn danger"
                 type="button"
             >
-                ⬅ Volver
+                🗑️ Eliminar PDF descargados
             </button>
 
-
             <div
-                id="detail-content"
-            >
-                <!--
-                    El contenido del manual
-                    se genera mediante JavaScript.
-                -->
+                id="offline-status"
+                class="status-message"
+            ></div>
+
+        </div>
+
+
+        <div class="section-title">
+            ℹ️ Aplicación
+        </div>
+
+        <div class="settings-card">
+
+            <div class="about-row">
+                <span>Versión</span>
+                <strong id="settings-version">1.2.0</strong>
             </div>
 
-        </section>
+            <div class="about-row">
+                <span>Equipos</span>
+                <strong id="settings-manual-count">—</strong>
+            </div>
+
+            <div class="about-row">
+                <span>Estado</span>
+                <strong id="settings-online-state">—</strong>
+            </div>
+
+        </div>
+
+    </section>
 
 
-    </main>
+    <!-- DETALLE -->
+    <section id="view-detail" class="view">
 
-
-
-    <!-- =========================
-         NAVEGACIÓN INFERIOR
-    ========================== -->
-
-    <nav class="bottom-nav">
-
-        <a
-            href="#"
-            class="nav-item active"
-            data-target="view-home"
+        <button
+            class="back-btn"
+            id="btn-back"
+            type="button"
         >
+            ← Volver
+        </button>
 
-            <span class="nav-icon">
-                🏠
-            </span>
+        <div id="detail-content"></div>
 
-            <span class="nav-text">
-                Inicio
-            </span>
+    </section>
 
-        </a>
+</main>
 
 
-        <a
-            href="#"
-            class="nav-item"
-            data-target="view-search"
-        >
+<!-- NAVEGACIÓN -->
+<nav class="bottom-nav">
 
-            <span class="nav-icon">
-                🔎
-            </span>
+    <a
+        href="#"
+        class="nav-item active"
+        data-target="view-home"
+    >
+        <span class="nav-icon">🏠</span>
+        <span class="nav-text">Inicio</span>
+    </a>
 
-            <span class="nav-text">
-                Buscar
-            </span>
+    <a
+        href="#"
+        class="nav-item"
+        data-target="view-search"
+    >
+        <span class="nav-icon">🔎</span>
+        <span class="nav-text">Buscar</span>
+    </a>
 
-        </a>
+    <a
+        href="#"
+        class="nav-item"
+        data-target="view-ficha"
+    >
+        <span class="nav-icon">🔧</span>
+        <span class="nav-text">Ficha</span>
+    </a>
 
+    <a
+        href="#"
+        class="nav-item"
+        data-target="view-favorites"
+    >
+        <span class="nav-icon">⭐</span>
+        <span class="nav-text">Favoritos</span>
+    </a>
 
-        <a
-            href="#"
-            class="nav-item"
-            data-target="view-ficha"
-        >
+    <a
+        href="#"
+        class="nav-item"
+        data-target="view-more"
+    >
+        <span class="nav-icon">⚙️</span>
+        <span class="nav-text">Más</span>
+    </a>
 
-            <span class="nav-icon">
-                🔧
-            </span>
+</nav>
 
-            <span class="nav-text">
-                Ficha
-            </span>
-
-        </a>
-
-
-        <a
-            href="#"
-            class="nav-item"
-            data-target="view-favorites"
-        >
-
-            <span class="nav-icon">
-                ⭐
-            </span>
-
-            <span class="nav-text">
-                Favoritos
-            </span>
-
-        </a>
-
-
-        <a
-            href="#"
-            class="nav-item"
-            data-target="view-more"
-        >
-
-            <span class="nav-icon">
-                ⚙️
-            </span>
-
-            <span class="nav-text">
-                Más
-            </span>
-
-        </a>
-
-    </nav>
-
-
-
-    <!-- =========================
-         JAVASCRIPT
-    ========================== -->
-
-    <script
-        src="app.js?v=3"
-        defer
-    ></script>
+<script src="./app.js?v=1.2.0" defer></script>
 
 </body>
 </html>
-```
-
