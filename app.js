@@ -1,662 +1,568 @@
-/**
- * ARQUITECTURA PREPARADA PARA FASE 2:
- * Los servicios están desacoplados de la interfaz.
- */
+const APP_VERSION = "1.1.0";
+const MANUAL_CACHE = "a7-seguridad-v1.1.0";
 
-// 1. Servicio de Almacenamiento
 class StorageService {
-    static getFavorites() {
-        return JSON.parse(localStorage.getItem('biblioteca_favoritos')) || [];
+  static read(key, fallback = []) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch {
+      return fallback;
     }
-    static toggleFavorite(id) {
-        let favs = this.getFavorites();
-        if (favs.includes(id)) {
-            favs = favs.filter(fId => fId !== id);
-        } else {
-            favs.push(id);
-        }
-        localStorage.setItem('biblioteca_favoritos', JSON.stringify(favs));
-        return favs.includes(id);
-    }
-    static isFavorite(id) {
-        return this.getFavorites().includes(id);
-    }
-    
-    static getHistory() {
-        return JSON.parse(localStorage.getItem('biblioteca_historial')) || [];
-    }
-    static addToHistory(id) {
-        let history = this.getHistory();
-        history = history.filter(hId => hId !== id);
-        history.unshift(id);
-        if (history.length > 10) history.pop();
-        localStorage.setItem('biblioteca_historial', JSON.stringify(history));
-    }
-
-    static getTheme() {
-        return localStorage.getItem('biblioteca_tema') || 'light';
-    }
-    static setTheme(theme) {
-        localStorage.setItem('biblioteca_tema', theme);
-    }
+  }
+  static write(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+  }
+  static getFavorites() { return this.read("biblioteca_favoritos", []); }
+  static toggleFavorite(id) {
+    let favs = this.getFavorites();
+    favs = favs.includes(id) ? favs.filter(x => x !== id) : [...favs, id];
+    this.write("biblioteca_favoritos", favs);
+    return favs.includes(id);
+  }
+  static isFavorite(id) { return this.getFavorites().includes(id); }
+  static getHistory() { return this.read("biblioteca_historial", []); }
+  static addToHistory(id) {
+    let h = this.getHistory().filter(x => x !== id);
+    h.unshift(id);
+    this.write("biblioteca_historial", h.slice(0, 10));
+  }
+  static getTheme() { return localStorage.getItem("biblioteca_tema") || "light"; }
+  static setTheme(theme) { try { localStorage.setItem("biblioteca_tema", theme); } catch {} }
 }
 
-// 2. Servicio de Datos
 class DataService {
-    static manuals = [];
-    
-    static async loadData() {
-        try {
-            const response = await fetch('manuales.json');
-            this.manuals = await response.json();
-            return true;
-        } catch (error) {
-            console.error("Error cargando manuales:", error);
-            return false;
-        }
+  static manuals = [];
+  static async loadData() {
+    try {
+      const response = await fetch("manuales.json", { cache: "no-cache" });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      if (!Array.isArray(data)) throw new Error("manuales.json no contiene un array");
+      this.manuals = data;
+      return true;
+    } catch (error) {
+      console.error("Error cargando manuales:", error);
+      return false;
     }
-
-    static getAll() { return this.manuals; }
-    
-    static getById(id) {
-        return this.manuals.find(m => m.id === id);
-    }
-
-    static getBrands() {
-        const brands = [...new Set(this.manuals.map(m => m.marca))];
-        return brands.sort();
-    }
-
-    static getCategories() {
-        const cats = [...new Set(this.manuals.map(m => m.categoria))];
-        return cats.sort();
-    }
-
-    static search(query, category = "", brand = "") {
-        const normalize = str => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-        const q = normalize(query);
-
-        return this.manuals.filter(m => {
-            if (category && m.categoria !== category) return false;
-            if (brand && m.marca !== brand) return false;
-            if (!q) return true;
-            
-            const textToSearch = normalize(`${m.marca} ${m.modelo} ${m.categoria} ${m.tipo} ${m.descripcion} ${m.tags ? m.tags.join(' ') : ''}`);
-            return textToSearch.includes(q);
-        });
-    }
+  }
+  static getById(id) { return this.manuals.find(m => m.id === id); }
+  static getBrands() { return [...new Set(this.manuals.map(m => m.marca).filter(Boolean))].sort(); }
+  static getCategories() { return [...new Set(this.manuals.map(m => m.categoria).filter(Boolean))].sort(); }
+  static search(query, category = "", brand = "") {
+    const normalize = value => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const q = normalize(query);
+    return this.manuals.filter(m => {
+      if (category && m.categoria !== category) return false;
+      if (brand && m.marca !== brand) return false;
+      if (!q) return true;
+      const text = normalize([
+        m.marca, m.modelo, m.categoria, m.tipo, m.descripcion,
+        ...(Array.isArray(m.tags) ? m.tags : [])
+      ].join(" "));
+      return text.includes(q);
+    });
+  }
 }
 
-// 3. Controlador de UI
 const AppUI = {
-    totalZones: 30,
+  totalZones: 30,
+  lastView: "view-home",
 
-    init() {
-        this.cacheDOM();
-        this.bindEvents();
-        this.loadTheme();
-        this.initializeApp();
-    },
+  init() {
+    this.cacheDOM();
+    this.bindEvents();
+    this.loadTheme();
+    this.initializeApp();
+    this.registerServiceWorker();
+  },
 
-    cacheDOM() {
-        this.views = document.querySelectorAll('.view');
-        this.navItems = document.querySelectorAll('.nav-item');
-        this.mainSearch = document.getElementById('main-search');
-        this.secSearch = document.getElementById('secondary-search');
-        this.searchResults = document.getElementById('search-results');
-        this.filterCat = document.getElementById('filter-category');
-        this.filterBrand = document.getElementById('filter-brand');
-        this.detailContent = document.getElementById('detail-content');
-    },
+  cacheDOM() {
+    this.views = document.querySelectorAll(".view");
+    this.navItems = document.querySelectorAll(".nav-item");
+    this.mainSearch = document.getElementById("main-search");
+    this.secSearch = document.getElementById("secondary-search");
+    this.searchResults = document.getElementById("search-results");
+    this.filterCat = document.getElementById("filter-category");
+    this.filterBrand = document.getElementById("filter-brand");
+    this.detailContent = document.getElementById("detail-content");
+  },
 
-    bindEvents() {
-        // Navegación Inferior
-        this.navItems.forEach(item => {
-            item.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.navigate(item.dataset.target);
-            });
-        });
+  bindEvents() {
+    this.navItems.forEach(item => item.addEventListener("click", e => {
+      e.preventDefault();
+      this.navigate(item.dataset.target);
+    }));
 
-        // Buscadores
-        if(this.mainSearch) {
-            this.mainSearch.addEventListener('focus', () => {
-                this.navigate('view-search');
-                if(this.secSearch) this.secSearch.focus();
-            });
-        }
-        
-        if(this.secSearch) this.secSearch.addEventListener('input', () => this.renderSearch());
-        if(this.filterCat) this.filterCat.addEventListener('change', () => this.renderSearch());
-        if(this.filterBrand) this.filterBrand.addEventListener('change', () => this.renderSearch());
+    this.mainSearch?.addEventListener("focus", () => {
+      this.navigate("view-search");
+      this.secSearch?.focus();
+    });
+    this.mainSearch?.addEventListener("input", () => {
+      this.navigate("view-search");
+      if (this.secSearch) this.secSearch.value = this.mainSearch.value;
+      this.renderSearch();
+    });
+    this.secSearch?.addEventListener("input", () => this.renderSearch());
+    this.filterCat?.addEventListener("change", () => this.renderSearch());
+    this.filterBrand?.addEventListener("change", () => this.renderSearch());
 
-        // Botones de categoría rápida
-        document.querySelectorAll('.cat-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                if(this.filterCat) this.filterCat.value = btn.dataset.cat;
-                this.navigate('view-search');
-                this.renderSearch();
-            });
-        });
+    document.querySelectorAll(".cat-btn").forEach(btn => btn.addEventListener("click", () => {
+      this.filterCat.value = btn.dataset.cat;
+      this.secSearch.value = "";
+      this.navigate("view-search");
+      this.renderSearch();
+    }));
 
-        // Modo Oscuro
-        const themeToggle = document.getElementById('theme-toggle');
-        if(themeToggle) {
-            themeToggle.addEventListener('change', (e) => {
-                const theme = e.target.checked ? 'dark' : 'light';
-                StorageService.setTheme(theme);
-                this.applyTheme(theme);
-            });
-        }
+    document.getElementById("theme-toggle")?.addEventListener("change", e => {
+      const theme = e.target.checked ? "dark" : "light";
+      StorageService.setTheme(theme);
+      this.applyTheme(theme);
+    });
 
-        // Botón Volver de Ficha
-        const btnBack = document.getElementById('btn-back');
-        if(btnBack) {
-            btnBack.addEventListener('click', () => {
-                this.navigate(this.lastView || 'view-home');
-            });
-        }
-    },
+    document.getElementById("btn-back")?.addEventListener("click", () => this.navigate(this.lastView));
+    document.getElementById("btn-clear-cache")?.addEventListener("click", () => this.clearAppCache());
+  },
 
-    async initializeApp() {
-        await DataService.loadData();
-        this.populateFilters();
-        this.renderHome();
-    },
+  async initializeApp() {
+    const loaded = await DataService.loadData();
+    this.populateFilters();
+    this.renderHome();
+    const status = document.getElementById("app-status");
+    if (status) status.textContent = loaded
+      ? `VersiÃ³n ${APP_VERSION} Â· Biblioteca cargada Â· ${DataService.manuals.length} equipos`
+      : "No se pudo cargar la biblioteca. Comprueba la conexiÃ³n y recarga.";
+  },
 
-    navigate(viewId) {
-        if(viewId !== 'view-detail') this.lastView = viewId;
-        
-        this.views.forEach(v => v.classList.remove('active'));
-        const targetView = document.getElementById(viewId);
-        if(targetView) targetView.classList.add('active');
+  registerServiceWorker() {
+    if (!("serviceWorker" in navigator)) return;
+    window.addEventListener("load", async () => {
+      try {
+        await navigator.serviceWorker.register("./sw.js");
+      } catch (error) {
+        console.warn("Service Worker no disponible:", error);
+      }
+    });
+  },
 
-        this.navItems.forEach(nav => {
-            if (nav.dataset.target === viewId) nav.classList.add('active');
-            else nav.classList.remove('active');
-        });
+  navigate(viewId) {
+    if (viewId !== "view-detail") this.lastView = viewId;
+    this.views.forEach(v => v.classList.remove("active"));
+    document.getElementById(viewId)?.classList.add("active");
+    this.navItems.forEach(nav => nav.classList.toggle("active", nav.dataset.target === viewId));
+    if (viewId === "view-home") this.renderHome();
+    if (viewId === "view-search") this.renderSearch();
+    if (viewId === "view-favorites") this.renderFavoritesFull();
+    if (viewId === "view-ficha") this.renderFichaForm();
+  },
 
-        if (viewId === 'view-home') this.renderHome();
-        if (viewId === 'view-favorites') this.renderFavoritesFull();
-        if (viewId === 'view-ficha') this.renderFichaForm();
-    },
+  getIconForCategory(cat) {
+    return {
+      "Alarmas": "ðŸš¨", "CCTV": "ðŸ“¹", "Redes": "ðŸŒ",
+      "Control de Acceso": "ðŸšª", "Videoporteros": "ðŸ“ž",
+      "Electricidad": "âš¡"
+    }[cat] || "ðŸ”§";
+  },
 
-    getIconForCategory(cat) {
-        const icons = { 'Alarmas': '🔔', 'CCTV': '📹', 'Redes': '🌐', 'Control de Acceso': '🚪', 'Videoporteros': '📞', 'Electricidad': '⚡' };
-        return icons[cat] || '🔧';
-    },
+  escape(value) {
+    return String(value ?? "").replace(/[&<>"']/g, c => ({
+      "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#039;"
+    }[c]));
+  },
 
-    createItemCard(item) {
-        const card = document.createElement('div');
-        card.className = 'item-card';
-        card.innerHTML = `
-            <div class="item-left">
-                <div class="item-icon">${this.getIconForCategory(item.categoria)}</div>
-                <div class="item-card-info">
-                    <h3>${item.marca} ${item.modelo}</h3>
-                    <p>${item.tipo}</p>
-                </div>
-            </div>
-            <div style="color: var(--primary);">➔</div>
-        `;
-        card.addEventListener('click', () => this.openDetail(item.id));
-        return card;
-    },
+  createItemCard(item) {
+    const card = document.createElement("div");
+    card.className = "item-card";
+    card.innerHTML = `
+      <div class="item-left">
+        <div class="item-icon">${this.getIconForCategory(item.categoria)}</div>
+        <div class="item-card-info">
+          <h3>${this.escape(item.marca)} ${this.escape(item.modelo)}</h3>
+          <p>${this.escape(item.tipo)}</p>
+        </div>
+      </div>
+      <div class="item-arrow">âžœ</div>`;
+    card.addEventListener("click", () => this.openDetail(item.id));
+    return card;
+  },
 
-    renderHome() {
-        const histContainer = document.getElementById('recent-list');
-        if(histContainer) {
-            histContainer.innerHTML = '';
-            const historyIds = StorageService.getHistory();
-            if (historyIds.length === 0) histContainer.innerHTML = '<p style="color:var(--text-muted); font-size:14px;">No hay consultas recientes.</p>';
-            historyIds.forEach(id => {
-                const item = DataService.getById(id);
-                if(item) histContainer.appendChild(this.createItemCard(item));
-            });
-        }
-
-        const favContainer = document.getElementById('favorites-list-home');
-        if(favContainer) {
-            favContainer.innerHTML = '';
-            const favIds = StorageService.getFavorites().slice(0, 3);
-            if (favIds.length === 0) favContainer.innerHTML = '<p style="color:var(--text-muted); font-size:14px;">Aún no tienes favoritos.</p>';
-            favIds.forEach(id => {
-                const item = DataService.getById(id);
-                if(item) favContainer.appendChild(this.createItemCard(item));
-            });
-        }
-    },
-
-    populateFilters() {
-        if(this.filterCat) {
-            DataService.getCategories().forEach(cat => {
-                this.filterCat.add(new Option(cat, cat));
-            });
-        }
-        if(this.filterBrand) {
-            DataService.getBrands().forEach(brand => {
-                this.filterBrand.add(new Option(brand, brand));
-            });
-        }
-    },
-
-    renderSearch() {
-        if(!this.searchResults) return;
-        const query = this.secSearch ? this.secSearch.value : '';
-        const cat = this.filterCat ? this.filterCat.value : '';
-        const brand = this.filterBrand ? this.filterBrand.value : '';
-        
-        const results = DataService.search(query, cat, brand);
-        this.searchResults.innerHTML = '';
-        
-        if(results.length === 0) {
-            this.searchResults.innerHTML = '<p style="text-align:center; margin-top:20px; color:var(--text-muted);">No se encontraron resultados.</p>';
-            return;
-        }
-
-        results.forEach(item => this.searchResults.appendChild(this.createItemCard(item)));
-    },
-
-    renderFavoritesFull() {
-        const favContainer = document.getElementById('favorites-list-full');
-        if(!favContainer) return;
-        favContainer.innerHTML = '';
-        const favIds = StorageService.getFavorites();
-        if (favIds.length === 0) favContainer.innerHTML = '<p style="text-align:center; margin-top:20px; color:var(--text-muted);">Tu biblioteca está vacía.</p>';
-        favIds.forEach(id => {
-            const item = DataService.getById(id);
-            if(item) favContainer.appendChild(this.createItemCard(item));
-        });
-    },
-
-    renderFichaForm() {
-        const container = document.getElementById('ficha-form-container');
-        if(!container) return;
-
-        this.totalZones = 30;
-
-        container.innerHTML = `
-            <div class="ficha-card">
-                <h3>📋 Datos del Cliente / Obra</h3>
-                <input type="text" id="f-cliente" placeholder="Cliente / Empresa">
-                <input type="text" id="f-ubicacion" placeholder="Dirección / Ubicación">
-                <input type="date" id="f-fecha" value="${new Date().toISOString().split('T')[0]}">
-
-                <h3>🌐 Configuración de Red</h3>
-                <input type="text" id="f-ip" placeholder="IP asignada (ej. 192.168.1.100)">
-                <input type="text" id="f-gateway" placeholder="Puerta de enlace / Gateway (ej. 192.168.1.1)">
-                <input type="text" id="f-puertos" placeholder="Puertos abiertos (ej. 80, 554, 8000)">
-
-                <h3>📹 Sistema CCTV</h3>
-                <div class="form-group">
-                    <label>Marca de Cámaras:</label>
-                    <select id="f-cctv-cam-marca" class="styled-select">
-                        <option value="Dahua">Dahua</option>
-                        <option value="Hikvision">Hikvision</option>
-                        <option value="Vesta">Vesta</option>
-                        <option value="Imou">Imou</option>
-                        <option value="Otros">Otros</option>
-                    </select>
-                    <input type="text" id="f-cctv-cam-otro" placeholder="Especificar marca/modelo de cámara" style="display:none; margin-top:6px;">
-                </div>
-
-                <div class="form-group">
-                    <label>Marca de Grabador:</label>
-                    <select id="f-cctv-grab-marca" class="styled-select">
-                        <option value="Dahua">Dahua</option>
-                        <option value="Hikvision">Hikvision</option>
-                        <option value="Vesta">Vesta</option>
-                        <option value="Imou">Imou</option>
-                        <option value="Otros">Otros</option>
-                    </select>
-                    <input type="text" id="f-cctv-grab-otro" placeholder="Especificar marca/modelo de grabador" style="display:none; margin-top:6px;">
-                </div>
-
-                <div class="form-group">
-                    <label>Tecnología del Grabador:</label>
-                    <select id="f-cctv-tipo" class="styled-select">
-                        <option value="IP">IP</option>
-                        <option value="HD">HD (Analógico / HDCVI / TVI)</option>
-                    </select>
-                </div>
-
-                <!-- CONEXIONES REMOTAS DEL GRABADOR -->
-                <div class="ficha-subsection">
-                    <h4 class="subsection-title">📡 Conexiones Remotas</h4>
-                    <div class="remote-connections-list">
-                        <div class="remote-row">
-                            <label class="checkbox-tag">
-                                <input type="checkbox" class="remote-check" data-target="p2p-input">
-                                <span>P2P</span>
-                            </label>
-                            <input type="text" id="p2p-input" class="ficha-input remote-input" placeholder="Datos P2P (Nº Serie / ID)" disabled>
-                        </div>
-                        <div class="remote-row">
-                            <label class="checkbox-tag">
-                                <input type="checkbox" class="remote-check" data-target="dns-input">
-                                <span>DNS</span>
-                            </label>
-                            <input type="text" id="dns-input" class="ficha-input remote-input" placeholder="Dominio / DDNS (ej: mi.ddns.com)" disabled>
-                        </div>
-                        <div class="remote-row">
-                            <label class="checkbox-tag">
-                                <input type="checkbox" class="remote-check" data-target="vpn-input">
-                                <span>VPN</span>
-                            </label>
-                            <input type="text" id="vpn-input" class="ficha-input remote-input" placeholder="Datos VPN (IP / Servidor)" disabled>
-                        </div>
-                        <div class="remote-row">
-                            <label class="checkbox-tag">
-                                <input type="checkbox" class="remote-check" data-target="otros-input">
-                                <span>Otros</span>
-                            </label>
-                            <input type="text" id="otros-input" class="ficha-input remote-input" placeholder="Especificar detalles..." disabled>
-                        </div>
-                    </div>
-                </div>
-
-                <h4>📹 Canales / Cámaras (32 Canales)</h4>
-                <div class="table-container scrollable-box" id="cctv-channels-list"></div>
-
-                <h3>🔔 Sistema de Alarmas</h3>
-                <div class="form-group">
-                    <label>Marca / Tipo de Central:</label>
-                    <select id="f-alarm-marca" class="styled-select">
-                        <option value="Ajax">Ajax</option>
-                        <option value="Hikvision">Hikvision</option>
-                        <option value="Vesta">Vesta</option>
-                        <option value="DSC">DSC</option>
-                        <option value="Risco">Risco</option>
-                        <option value="Otro">Otro</option>
-                    </select>
-                    <input type="text" id="f-alarm-otro" placeholder="Especificar marca y modelo de central" style="display:none; margin-top:6px;">
-                </div>
-
-                <h4>🚨 Mapeo de Zonas</h4>
-                <div class="table-container scrollable-box" id="alarm-zones-list"></div>
-                <button type="button" class="btn-add" id="btn-add-zone">➕ Añadir más zonas</button>
-
-                <h3>📝 Observaciones y Credenciales</h3>
-                <textarea id="f-observaciones" placeholder="Claves de usuario, notas de acceso o pendientes..." rows="3"></textarea>
-
-                <div class="ficha-actions">
-                    <button class="btn-ficha primary" id="btn-copy-ficha">📋 Copiar para Notas</button>
-                    <button class="btn-ficha secondary" id="btn-download-ficha">📥 Descargar (.txt)</button>
-                </div>
-            </div>
-        `;
-
-        // Generar 32 canales CCTV
-        const cctvList = document.getElementById('cctv-channels-list');
-        let channelsHtml = '';
-        for (let i = 1; i <= 32; i++) {
-            channelsHtml += `
-                <div class="grid-row channel-row">
-                    <span class="row-num">CH${i}</span>
-                    <input type="text" id="f-ch-name-${i}" placeholder="Nombre cámara ${i}">
-                    <input type="text" id="f-ch-ip-${i}" placeholder="IP">
-                    <input type="text" id="f-ch-port-${i}" placeholder="Puerto">
-                </div>
-            `;
-        }
-        cctvList.innerHTML = channelsHtml;
-
-        // Generar zonas iniciales de Alarma (30 zonas)
-        this.renderZones();
-
-        // Listeners para Conexiones Remotas (habilitar/deshabilitar campos)
-        container.querySelectorAll('.remote-check').forEach(chk => {
-            chk.addEventListener('change', (e) => {
-                const targetId = e.target.getAttribute('data-target');
-                const targetInput = document.getElementById(targetId);
-                if (targetInput) {
-                    targetInput.disabled = !e.target.checked;
-                    if (e.target.checked) {
-                        targetInput.focus();
-                    } else {
-                        targetInput.value = '';
-                    }
-                }
-            });
-        });
-
-        // Listeners para selects "Otros"
-        const camSelect = document.getElementById('f-cctv-cam-marca');
-        const camOtroInput = document.getElementById('f-cctv-cam-otro');
-        camSelect.addEventListener('change', () => {
-            camOtroInput.style.display = camSelect.value === 'Otros' ? 'block' : 'none';
-        });
-
-        const grabSelect = document.getElementById('f-cctv-grab-marca');
-        const grabOtroInput = document.getElementById('f-cctv-grab-otro');
-        grabSelect.addEventListener('change', () => {
-            grabOtroInput.style.display = grabSelect.value === 'Otros' ? 'block' : 'none';
-        });
-
-        const alarmSelect = document.getElementById('f-alarm-marca');
-        const alarmOtroInput = document.getElementById('f-alarm-otro');
-        alarmSelect.addEventListener('change', () => {
-            alarmOtroInput.style.display = alarmSelect.value === 'Otro' ? 'block' : 'none';
-        });
-
-        // Botón añadir más zonas
-        document.getElementById('btn-add-zone')?.addEventListener('click', () => {
-            this.totalZones += 5;
-            this.renderZones();
-        });
-
-        // Evento Copiar al Portapapeles
-        document.getElementById('btn-copy-ficha')?.addEventListener('click', () => {
-            const texto = this.generarTextoFicha();
-            navigator.clipboard.writeText(texto).then(() => {
-                alert('✅ Ficha completa copiada al portapapeles. Abre Notas y pégala.');
-            });
-        });
-
-        // Evento Descargar TXT
-        document.getElementById('btn-download-ficha')?.addEventListener('click', () => {
-            const texto = this.generarTextoFicha();
-            const blob = new Blob([texto], { type: 'text/plain;charset=utf-8' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            const cliente = document.getElementById('f-cliente').value || 'Instalacion';
-            link.download = `Ficha_${cliente.replace(/\s+/g, '_')}.txt`;
-            link.click();
-        });
-    },
-
-    renderZones() {
-        const zonesList = document.getElementById('alarm-zones-list');
-        if (!zonesList) return;
-
-        // Guardar valores ya escritos antes de re-renderizar
-        const currentVals = {};
-        for (let i = 1; i <= this.totalZones; i++) {
-            const name = document.getElementById(`f-z-name-${i}`)?.value;
-            const type = document.getElementById(`f-z-type-${i}`)?.value;
-            if (name || type) currentVals[i] = { name, type };
-        }
-
-        let zonesHtml = '';
-        for (let i = 1; i <= this.totalZones; i++) {
-            zonesHtml += `
-                <div class="grid-row zone-row">
-                    <span class="row-num">Z${i}</span>
-                    <input type="text" id="f-z-name-${i}" placeholder="Ubicación / Detector Z${i}">
-                    <select id="f-z-type-${i}" class="styled-select compact">
-                        <option value="Volumétrico">Volumétrico</option>
-                        <option value="Magnético">Magnético</option>
-                        <option value="Exterior">Exterior</option>
-                        <option value="Cortina">Cortina</option>
-                        <option value="Sombra">Sombra</option>
-                        <option value="Humo / Incendio">Humo / Incendio</option>
-                        <option value="Teclado / Sirena">Teclado / Sirena</option>
-                        <option value="Otro">Otro</option>
-                    </select>
-                </div>
-            `;
-        }
-        zonesList.innerHTML = zonesHtml;
-
-        // Restaurar valores guardados
-        Object.keys(currentVals).forEach(i => {
-            if (document.getElementById(`f-z-name-${i}`)) document.getElementById(`f-z-name-${i}`).value = currentVals[i].name || '';
-            if (document.getElementById(`f-z-type-${i}`)) document.getElementById(`f-z-type-${i}`).value = currentVals[i].type || 'Volumétrico';
-        });
-    },
-
-    generarTextoFicha() {
-        const getVal = id => document.getElementById(id)?.value || 'N/A';
-
-        // Marca Cámaras
-        let camMarca = getVal('f-cctv-cam-marca');
-        if (camMarca === 'Otros') camMarca = getVal('f-cctv-cam-otro') || 'Otros';
-
-        // Marca Grabador
-        let grabMarca = getVal('f-cctv-grab-marca');
-        if (grabMarca === 'Otros') grabMarca = getVal('f-cctv-grab-otro') || 'Otros';
-
-        // Conexiones Remotas seleccionadas
-        let remotasArr = [];
-        const container = document.getElementById('ficha-form-container');
-        
-        const p2pChk = container?.querySelector('[data-target="p2p-input"]')?.checked;
-        const dnsChk = container?.querySelector('[data-target="dns-input"]')?.checked;
-        const vpnChk = container?.querySelector('[data-target="vpn-input"]')?.checked;
-        const otrosChk = container?.querySelector('[data-target="otros-input"]')?.checked;
-
-        if (p2pChk) remotasArr.push(`P2P: ${getVal('p2p-input')}`);
-        if (dnsChk) remotasArr.push(`DNS: ${getVal('dns-input')}`);
-        if (vpnChk) remotasArr.push(`VPN: ${getVal('vpn-input')}`);
-        if (otrosChk) remotasArr.push(`Otros: ${getVal('otros-input')}`);
-
-        const remotasText = remotasArr.length > 0 ? remotasArr.join(' | ') : 'Sin configuración remota';
-
-        // Marca Alarma
-        let alarmMarca = getVal('f-alarm-marca');
-        if (alarmMarca === 'Otro') alarmMarca = getVal('f-alarm-otro') || 'Otro';
-
-        // Recopilar Canales CCTV activos
-        let canalesText = '';
-        for (let i = 1; i <= 32; i++) {
-            const name = getVal(`f-ch-name-${i}`);
-            const ip = getVal(`f-ch-ip-${i}`);
-            const port = getVal(`f-ch-port-${i}`);
-
-            if (name !== 'N/A' && name.trim() !== '') {
-                canalesText += `CH${i}: ${name} | IP: ${ip} | Puerto: ${port}\n`;
-            }
-        }
-        if (!canalesText) canalesText = 'Sin canales registrados.\n';
-
-        // Recopilar Zonas de Alarma activas
-        let zonasText = '';
-        for (let i = 1; i <= this.totalZones; i++) {
-            const name = getVal(`f-z-name-${i}`);
-            const type = getVal(`f-z-type-${i}`);
-
-            if (name !== 'N/A' && name.trim() !== '') {
-                zonasText += `Z${i}: ${name} (${type})\n`;
-            }
-        }
-        if (!zonasText) zonasText = 'Sin zonas registradas.\n';
-
-        return `========================================
-FICHA TÉCNICA DE INSTALACIÓN - A7 SEGURIDAD
-========================================
-FECHA: ${getVal('f-fecha')}
-CLIENTE: ${getVal('f-cliente')}
-UBICACIÓN: ${getVal('f-ubicacion')}
-
---- RED E IP ---
-IP ASIGNADA: ${getVal('f-ip')}
-GATEWAY: ${getVal('f-gateway')}
-PUERTOS: ${getVal('f-puertos')}
-
---- SISTEMA CCTV ---
-CÁMARAS MARCA: ${camMarca}
-GRABADOR MARCA: ${grabMarca}
-TECNOLOGÍA GRABADOR: ${getVal('f-cctv-tipo')}
-CONEXIONES REMOTAS: ${remotasText}
-
---- CANALES CCTV REGISTRADOS ---
-${canalesText}
---- SISTEMA DE ALARMA ---
-CENTRAL / MARCA: ${alarmMarca}
-
---- MAPEO DE ZONAS REGISTRADAS ---
-${zonasText}
---- OBSERVACIONES Y CREDENCIALES ---
-${getVal('f-observaciones')}
-========================================`;
-    },
-
-    openDetail(id) {
+  renderHome() {
+    const renderList = (id, ids, empty) => {
+      const box = document.getElementById(id);
+      if (!box) return;
+      box.innerHTML = "";
+      if (!ids.length) {
+        box.innerHTML = `<p class="empty-state">${empty}</p>`;
+        return;
+      }
+      ids.forEach(id => {
         const item = DataService.getById(id);
-        if(!item) return;
+        if (item) box.appendChild(this.createItemCard(item));
+      });
+    };
+    renderList("recent-list", StorageService.getHistory(), "No hay consultas recientes.");
+    renderList("favorites-list-home", StorageService.getFavorites().slice(0, 3), "AÃºn no tienes favoritos.");
+  },
 
-        StorageService.addToHistory(id);
+  populateFilters() {
+    if (this.filterCat) DataService.getCategories().forEach(x => this.filterCat.add(new Option(x, x)));
+    if (this.filterBrand) DataService.getBrands().forEach(x => this.filterBrand.add(new Option(x, x)));
+  },
 
-        const isFav = StorageService.isFavorite(id);
-        const tagsHtml = item.tags ? item.tags.map(t => `<span>${t}</span>`).join('') : '';
-        
-        let docsHtml = '';
-        if(item.documentos) {
-            if(item.documentos.manual) docsHtml += `<a href="${item.documentos.manual}" target="_blank" class="doc-btn">📕 Manual de usuario</a>`;
-            if(item.documentos.instalacion) docsHtml += `<a href="${item.documentos.instalacion}" target="_blank" class="doc-btn">🛠️ Manual de instalación</a>`;
-            if(item.documentos.ficha) docsHtml += `<a href="${item.documentos.ficha}" target="_blank" class="doc-btn secondary">⚙️ Ficha técnica</a>`;
-            if(item.documentos.firmware) docsHtml += `<a href="${item.documentos.firmware}" target="_blank" class="doc-btn secondary">💾 Firmware</a>`;
-        }
-        if(item.fabricante) docsHtml += `<a href="${item.fabricante}" target="_blank" class="doc-btn secondary">🔗 Web del fabricante</a>`;
-
-        this.detailContent.innerHTML = `
-            <div class="detail-header">
-                <div style="font-size:32px; margin-bottom:8px;">${this.getIconForCategory(item.categoria)}</div>
-                <div style="color:var(--text-muted); font-size:14px;">${item.categoria} &gt; ${item.tipo}</div>
-                <h2>${item.marca} ${item.modelo}</h2>
-                <p>${item.descripcion || ''}</p>
-                <div class="detail-tags" style="margin-top:12px;">${tagsHtml}</div>
-            </div>
-            
-            <div class="detail-docs">
-                ${docsHtml}
-            </div>
-
-            <button class="fav-btn-large ${isFav ? 'is-fav' : ''}" id="btn-toggle-fav">
-                ${isFav ? '⭐ Quitar de favoritos' : '☆ Añadir a favoritos'}
-            </button>
-        `;
-
-        const btnToggle = document.getElementById('btn-toggle-fav');
-        if(btnToggle) {
-            btnToggle.addEventListener('click', (e) => {
-                const isNowFav = StorageService.toggleFavorite(id);
-                e.target.classList.toggle('is-fav', isNowFav);
-                e.target.innerHTML = isNowFav ? '⭐ Quitar de favoritos' : '☆ Añadir a favoritos';
-            });
-        }
-
-        this.navigate('view-detail');
-    },
-
-    loadTheme() {
-        const theme = StorageService.getTheme();
-        const themeToggle = document.getElementById('theme-toggle');
-        if (themeToggle) themeToggle.checked = (theme === 'dark');
-        this.applyTheme(theme);
-    },
-
-    applyTheme(theme) {
-        if(theme === 'dark') {
-            document.body.classList.add('dark-mode');
-            document.body.classList.remove('light-mode');
-        } else {
-            document.body.classList.add('light-mode');
-            document.body.classList.remove('dark-mode');
-        }
+  renderSearch() {
+    if (!this.searchResults) return;
+    const results = DataService.search(
+      this.secSearch?.value || "",
+      this.filterCat?.value || "",
+      this.filterBrand?.value || ""
+    );
+    this.searchResults.innerHTML = "";
+    if (!results.length) {
+      this.searchResults.innerHTML = `<p class="empty-state">No se encontraron resultados.</p>`;
+      return;
     }
+    results.forEach(item => this.searchResults.appendChild(this.createItemCard(item)));
+  },
+
+  renderFavoritesFull() {
+    const box = document.getElementById("favorites-list-full");
+    if (!box) return;
+    box.innerHTML = "";
+    const favs = StorageService.getFavorites();
+    if (!favs.length) {
+      box.innerHTML = `<p class="empty-state">Tu biblioteca de favoritos estÃ¡ vacÃ­a.</p>`;
+      return;
+    }
+    favs.forEach(id => {
+      const item = DataService.getById(id);
+      if (item) box.appendChild(this.createItemCard(item));
+    });
+  },
+
+  renderFichaForm() {
+    const container = document.getElementById("ficha-form-container");
+    if (!container) return;
+    this.totalZones = Math.max(this.totalZones || 30, 30);
+
+    container.innerHTML = `
+      <div class="ficha-card">
+        <h3>ðŸ“‹ Datos de instalaciÃ³n</h3>
+        <input type="text" id="f-cliente" placeholder="Cliente / Empresa">
+        <input type="text" id="f-ubicacion" placeholder="DirecciÃ³n / UbicaciÃ³n">
+        <input type="date" id="f-fecha" value="${new Date().toISOString().split("T")[0]}">
+
+        <h3>ðŸŒ Red</h3>
+        <input type="text" id="f-ip" placeholder="IP asignada">
+        <input type="text" id="f-gateway" placeholder="Gateway">
+        <input type="text" id="f-puertos" placeholder="Puertos / servicios utilizados">
+
+        <h3>ðŸ“¹ CCTV</h3>
+        <div class="form-group"><label>Marca de cÃ¡maras</label>
+          <select id="f-cctv-cam-marca" class="styled-select">
+            <option>Dahua</option><option>Hikvision</option><option>Vesta</option><option>Imou</option><option>Otros</option>
+          </select>
+          <input type="text" id="f-cctv-cam-otro" placeholder="Marca / modelo" class="conditional">
+        </div>
+        <div class="form-group"><label>Marca de grabador</label>
+          <select id="f-cctv-grab-marca" class="styled-select">
+            <option>Dahua</option><option>Hikvision</option><option>Vesta</option><option>Imou</option><option>Otros</option>
+          </select>
+          <input type="text" id="f-cctv-grab-otro" placeholder="Marca / modelo" class="conditional">
+        </div>
+        <div class="form-group"><label>TecnologÃ­a</label>
+          <select id="f-cctv-tipo" class="styled-select"><option>IP</option><option>HD</option></select>
+        </div>
+
+        <div class="ficha-subsection">
+          <h4>ðŸ“¡ Acceso remoto</h4>
+          <p class="small-note">No introduzcas contraseÃ±as. Guarda las credenciales en tu gestor o notas seguras.</p>
+          ${[
+            ["p2p","P2P","NÂº serie / ID"],
+            ["dns","DDNS","Dominio"],
+            ["vpn","VPN","Servidor / referencia"],
+            ["otros","Otro","DescripciÃ³n"]
+          ].map(([key,label,ph]) => `
+            <div class="remote-row">
+              <label class="checkbox-tag"><input type="checkbox" class="remote-check" data-target="${key}-input"><span>${label}</span></label>
+              <input type="text" id="${key}-input" class="remote-input" placeholder="${ph}" disabled>
+            </div>`).join("")}
+        </div>
+
+        <h4>ðŸ“¹ Canales / cÃ¡maras</h4>
+        <div class="scrollable-box" id="cctv-channels-list"></div>
+
+        <h3>ðŸš¨ Alarmas</h3>
+        <div class="form-group"><label>Central</label>
+          <select id="f-alarm-marca" class="styled-select">
+            <option>Ajax</option><option>Hikvision</option><option>Vesta</option><option>DSC</option><option>Risco</option><option>Otro</option>
+          </select>
+          <input type="text" id="f-alarm-otro" placeholder="Marca / modelo" class="conditional">
+        </div>
+
+        <h4>ðŸš¨ Mapeo de zonas</h4>
+        <div class="scrollable-box" id="alarm-zones-list"></div>
+        <button type="button" class="btn-add" id="btn-add-zone">âž• AÃ±adir 5 zonas</button>
+
+        <h3>ðŸ“ Observaciones tÃ©cnicas</h3>
+        <textarea id="f-observaciones" placeholder="Incidencias, pruebas, pendientes, ubicaciÃ³n de credenciales (sin contraseÃ±as)..." rows="4"></textarea>
+
+        <div class="ficha-actions">
+          <button class="btn-ficha primary" id="btn-copy-ficha">ðŸ“‹ Copiar para Notas</button>
+          <button class="btn-ficha secondary" id="btn-download-ficha">ðŸ“¥ Descargar TXT</button>
+        </div>
+      </div>`;
+
+    const channels = document.getElementById("cctv-channels-list");
+    for (let i = 1; i <= 32; i++) {
+      channels.insertAdjacentHTML("beforeend", `
+        <div class="grid-row channel-row">
+          <span class="row-num">CH${i}</span>
+          <input type="text" id="f-ch-name-${i}" placeholder="CÃ¡mara ${i}">
+          <input type="text" id="f-ch-ip-${i}" placeholder="IP">
+          <input type="text" id="f-ch-port-${i}" placeholder="Puerto">
+        </div>`);
+    }
+
+    this.renderZones();
+
+    container.querySelectorAll(".remote-check").forEach(chk => chk.addEventListener("change", e => {
+      const input = document.getElementById(e.target.dataset.target);
+      if (input) {
+        input.disabled = !e.target.checked;
+        if (!e.target.checked) input.value = "";
+        else input.focus();
+      }
+    }));
+
+    [
+      ["f-cctv-cam-marca","f-cctv-cam-otro"],
+      ["f-cctv-grab-marca","f-cctv-grab-otro"],
+      ["f-alarm-marca","f-alarm-otro"]
+    ].forEach(([selectId,inputId]) => {
+      const select = document.getElementById(selectId), input = document.getElementById(inputId);
+      const update = () => input.classList.toggle("visible", select.value === "Otros" || select.value === "Otro");
+      select.addEventListener("change", update);
+      update();
+    });
+
+    document.getElementById("btn-add-zone")?.addEventListener("click", () => {
+      this.totalZones += 5;
+      this.renderZones();
+    });
+
+    document.getElementById("btn-copy-ficha")?.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(this.generarTextoFicha());
+        alert("âœ… Ficha copiada. PÃ©gala en Notas.");
+      } catch {
+        alert("No se pudo copiar automÃ¡ticamente. Usa Descargar TXT.");
+      }
+    });
+
+    document.getElementById("btn-download-ficha")?.addEventListener("click", () => {
+      const text = this.generarTextoFicha();
+      const blob = new Blob([text], {type:"text/plain;charset=utf-8"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Ficha_${(this.value("f-cliente") || "Instalacion").replace(/[^a-z0-9_-]+/gi,"_")}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  },
+
+  renderZones() {
+    const box = document.getElementById("alarm-zones-list");
+    if (!box) return;
+    const old = {};
+    for (let i=1;i<=this.totalZones;i++) {
+      old[i] = {
+        name: document.getElementById(`f-z-name-${i}`)?.value || "",
+        detector: document.getElementById(`f-z-detector-${i}`)?.value || "VolumÃ©trico",
+        zoneType: document.getElementById(`f-z-type-${i}`)?.value || "InstantÃ¡nea"
+      };
+    }
+    box.innerHTML = "";
+    const detectorTypes = ["VolumÃ©trico","MagnÃ©tico","Exterior","Cortina","Sombra","Humo / Incendio","Teclado / Sirena","Otro"];
+    const zoneTypes = ["InstantÃ¡nea","Retardada","PÃ¡nico","24 horas","Incendio","Sabotaje","Exterior","Llave / Armado","TÃ©cnica","Otro"];
+    for (let i=1;i<=this.totalZones;i++) {
+      box.insertAdjacentHTML("beforeend", `
+        <div class="zone-block">
+          <div class="zone-title">Z${i}</div>
+          <input type="text" id="f-z-name-${i}" placeholder="UbicaciÃ³n / detector">
+          <select id="f-z-detector-${i}" class="styled-select compact">
+            ${detectorTypes.map(x=>`<option>${x}</option>`).join("")}
+          </select>
+          <select id="f-z-type-${i}" class="styled-select compact">
+            ${zoneTypes.map(x=>`<option>${x}</option>`).join("")}
+          </select>
+        </div>`);
+      if (old[i]) {
+        document.getElementById(`f-z-name-${i}`).value = old[i].name;
+        document.getElementById(`f-z-detector-${i}`).value = old[i].detector;
+        document.getElementById(`f-z-type-${i}`).value = old[i].zoneType;
+      }
+    }
+  },
+
+  value(id) { return document.getElementById(id)?.value?.trim() || "N/A"; },
+
+  generarTextoFicha() {
+    const v = id => this.value(id);
+    const selected = (id, otherId) => {
+      const val = v(id);
+      return (val === "Otros" || val === "Otro") ? (v(otherId) === "N/A" ? val : v(otherId)) : val;
+    };
+
+    const remote = ["p2p","dns","vpn","otros"].map(k => {
+      const chk = document.querySelector(`[data-target="${k}-input"]`);
+      return chk?.checked ? `${k.toUpperCase()}: ${v(`${k}-input`)}` : null;
+    }).filter(Boolean).join(" | ") || "Sin configuraciÃ³n remota";
+
+    const channels = [];
+    for (let i=1;i<=32;i++) {
+      const name=v(`f-ch-name-${i}`);
+      if (name !== "N/A") channels.push(`CH${i}: ${name} | IP: ${v(`f-ch-ip-${i}`)} | Puerto: ${v(`f-ch-port-${i}`)}`);
+    }
+
+    const zones=[];
+    for (let i=1;i<=this.totalZones;i++) {
+      const name=v(`f-z-name-${i}`);
+      if (name !== "N/A") zones.push(`Z${i}: ${name} | Detector: ${v(`f-z-detector-${i}`)} | Tipo: ${v(`f-z-type-${i}`)}`);
+    }
+
+    return `========================================
+FICHA TÃ‰CNICA DE INSTALACIÃ“N - A7 SEGURIDAD
+========================================
+FECHA: ${v("f-fecha")}
+CLIENTE: ${v("f-cliente")}
+UBICACIÃ“N: ${v("f-ubicacion")}
+
+--- RED ---
+IP: ${v("f-ip")}
+GATEWAY: ${v("f-gateway")}
+PUERTOS / SERVICIOS: ${v("f-puertos")}
+
+--- CCTV ---
+CÃMARAS: ${selected("f-cctv-cam-marca","f-cctv-cam-otro")}
+GRABADOR: ${selected("f-cctv-grab-marca","f-cctv-grab-otro")}
+TECNOLOGÃA: ${v("f-cctv-tipo")}
+ACCESO REMOTO: ${remote}
+
+--- CANALES CCTV ---
+${channels.join("\n") || "Sin cÃ¡maras registradas."}
+
+--- ALARMA ---
+CENTRAL: ${selected("f-alarm-marca","f-alarm-otro")}
+
+--- ZONAS ---
+${zones.join("\n") || "Sin zonas registradas."}
+
+--- OBSERVACIONES TÃ‰CNICAS ---
+${v("f-observaciones")}
+
+NOTA DE SEGURIDAD:
+No se almacenan ni exportan contraseÃ±as desde esta ficha.
+========================================`;
+  },
+
+  async openDetail(id) {
+    const item = DataService.getById(id);
+    if (!item) return;
+    StorageService.addToHistory(id);
+
+    const docs = Object.entries(item.documentos || {}).filter(([,url]) => url);
+    const buttons = [];
+    for (const [type,url] of docs) {
+      const labels = {manual:"ðŸ“• Manual de usuario",instalacion:"ðŸ› ï¸ Manual de instalaciÃ³n",ficha:"âš™ï¸ Ficha tÃ©cnica",firmware:"ðŸ’¾ Firmware"};
+      const offline = await this.isCached(url);
+      buttons.push(`
+        <div class="doc-row">
+          <a href="${this.escape(url)}" target="_blank" rel="noopener noreferrer" class="doc-btn">${labels[type] || type}</a>
+          <button class="offline-btn ${offline ? "downloaded" : ""}" data-offline-url="${this.escape(url)}">${offline ? "âœ“ Offline" : "â¬‡ Offline"}</button>
+        </div>`);
+    }
+    if (item.fabricante) {
+      buttons.push(`<a href="${this.escape(item.fabricante)}" target="_blank" rel="noopener noreferrer" class="doc-btn secondary">ðŸ”— Web del fabricante</a>`);
+    }
+
+    this.detailContent.innerHTML = `
+      <div class="detail-header">
+        <div class="detail-icon">${this.getIconForCategory(item.categoria)}</div>
+        <div class="muted">${this.escape(item.categoria)} Â· ${this.escape(item.tipo)}</div>
+        <h2>${this.escape(item.marca)} ${this.escape(item.modelo)}</h2>
+        <p>${this.escape(item.descripcion || "")}</p>
+        <div class="detail-tags">${(item.tags||[]).map(t=>`<span>${this.escape(t)}</span>`).join("")}</div>
+      </div>
+      <div class="detail-docs">${buttons.join("") || '<p class="empty-state">No hay documentos asociados.</p>'}</div>
+      <button class="fav-btn-large ${StorageService.isFavorite(id) ? "is-fav":""}" id="btn-toggle-fav">
+        ${StorageService.isFavorite(id) ? "â­ Quitar de favoritos" : "â˜† AÃ±adir a favoritos"}
+      </button>`;
+
+    document.getElementById("btn-toggle-fav")?.addEventListener("click", e => {
+      const now = StorageService.toggleFavorite(id);
+      e.currentTarget.classList.toggle("is-fav", now);
+      e.currentTarget.textContent = now ? "â­ Quitar de favoritos" : "â˜† AÃ±adir a favoritos";
+    });
+
+    this.detailContent.querySelectorAll(".offline-btn").forEach(btn => btn.addEventListener("click", async e => {
+      const url = e.currentTarget.dataset.offlineUrl;
+      e.currentTarget.disabled = true;
+      try {
+        const ok = await this.toggleOffline(url);
+        e.currentTarget.textContent = ok ? "âœ“ Offline" : "â¬‡ Offline";
+        e.currentTarget.classList.toggle("downloaded", ok);
+      } catch (err) {
+        console.error(err);
+        alert("No se pudo descargar para uso offline. Comprueba la conexiÃ³n.");
+      } finally {
+        e.currentTarget.disabled = false;
+      }
+    }));
+
+    this.navigate("view-detail");
+  },
+
+  async isCached(path) {
+    if (!("caches" in window)) return false;
+    const url = new URL(path, location.href).href;
+    const cache = await caches.open(MANUAL_CACHE);
+    return !!(await cache.match(url));
+  },
+
+  async toggleOffline(path) {
+    if (!("caches" in window)) throw new Error("Cache API no disponible");
+    const url = new URL(path, location.href).href;
+    const cache = await caches.open(MANUAL_CACHE);
+    const existing = await cache.match(url);
+    if (existing) {
+      await cache.delete(url);
+      return false;
+    }
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    await cache.put(url, response.clone());
+    return true;
+  },
+
+  async clearAppCache() {
+    if (!("caches" in window)) return;
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(k => k.startsWith("a7-seguridad-")).map(k => caches.delete(k)));
+    alert("CachÃ© de la aplicaciÃ³n limpiada. Recarga la pÃ¡gina para reinstalar el shell.");
+  },
+
+  loadTheme() {
+    const theme = StorageService.getTheme();
+    const toggle = document.getElementById("theme-toggle");
+    if (toggle) toggle.checked = theme === "dark";
+    this.applyTheme(theme);
+  },
+
+  applyTheme(theme) {
+    document.body.classList.toggle("dark-mode", theme === "dark");
+    document.body.classList.toggle("light-mode", theme !== "dark");
+  }
 };
 
-document.addEventListener('DOMContentLoaded', () => {
-    AppUI.init();
-});
+document.addEventListener("DOMContentLoaded", () => AppUI.init());
