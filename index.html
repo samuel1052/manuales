@@ -39,7 +39,7 @@
         content="Biblioteca Técnica"
     >
 
-    <link rel="stylesheet" href="./styles.css?v=1.2.0">
+    <link rel="stylesheet" href="./styles.css?v=1.3.0">
 </head>
 
 <body class="light-mode">
@@ -55,7 +55,7 @@
             id="header-action"
             class="header-action"
             type="button"
-            aria-label="Información"
+            aria-label="Abrir Más: configuración e información"
         >
             ⋮
         </button>
@@ -81,7 +81,7 @@
         <div class="search-container">
             <input
                 type="search"
-                id="main-search"
+                id="main-search" aria-label="Buscar equipos"
                 placeholder="🔎 Buscar marca, modelo o equipo..."
                 autocomplete="off"
                 enterkeyhint="search"
@@ -156,7 +156,7 @@
         <div class="search-header">
             <input
                 type="search"
-                id="secondary-search"
+                id="secondary-search" aria-label="Buscar manuales"
                 placeholder="Buscar manual, marca o modelo..."
                 autocomplete="off"
             >
@@ -164,11 +164,11 @@
 
         <div class="filters-scroll">
 
-            <select id="filter-category">
+            <select id="filter-category" aria-label="Categoría">
                 <option value="">Todas las categorías</option>
             </select>
 
-            <select id="filter-brand">
+            <select id="filter-brand" aria-label="Marca">
                 <option value="">Todas las marcas</option>
             </select>
 
@@ -192,7 +192,7 @@
         </div>
 
         <div class="info-banner">
-            La ficha se genera localmente en el dispositivo.
+            La ficha permanece únicamente en memoria del dispositivo mientras esta página esté abierta. Copia la ficha a Notas o descarga el TXT antes de cerrar o recargar la página.
             No introduzcas contraseñas ni credenciales sensibles.
         </div>
 
@@ -234,7 +234,7 @@
                 <label class="switch">
                     <input
                         type="checkbox"
-                        id="theme-toggle"
+                        id="theme-toggle" aria-label="Modo oscuro"
                     >
                     <span class="slider round"></span>
                 </label>
@@ -281,7 +281,7 @@
 
             <div class="about-row">
                 <span>Versión</span>
-                <strong id="settings-version">1.2.0</strong>
+                <strong id="settings-version">1.3.0</strong>
             </div>
 
             <div class="about-row">
@@ -367,7 +367,7 @@
 
 </nav>
 
-<script src="./app.js?v=1.2.0" defer></script>
+<script src="./app.js?v=1.3.0" defer></script>
 
 </body>
 </html>

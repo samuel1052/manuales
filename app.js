@@ -1,6 +1,6 @@
-const APP_VERSION = "1.2.0";
+const APP_VERSION = "1.3.0";
 
-const SHELL_CACHE = "a7-seguridad-shell-v1.2.0";
+const SHELL_CACHE = "a7-seguridad-shell-v1.3.0";
 const PDF_CACHE = "a7-seguridad-pdf-v1";
 
 class StorageService {
@@ -214,7 +214,8 @@ class DataService {
 
 const AppUI = {
 
-    totalZones: 30,
+    totalZones: 1,
+    totalCameras: 1,
 
     lastView: "view-home",
 
@@ -223,6 +224,8 @@ const AppUI = {
         this.cacheDOM();
 
         this.bindEvents();
+
+        this.populateFilters();
 
         this.loadTheme();
 
@@ -290,6 +293,7 @@ const AppUI = {
 
 
     bindEvents() {
+        document.getElementById("header-action")?.addEventListener("click", () => this.navigate("view-more"));
 
         this.navItems.forEach(item => {
 
@@ -359,32 +363,14 @@ const AppUI = {
         );
 
 
-        document
-            .querySelectorAll(".cat-btn")
-            .forEach(button => {
-
-                button.addEventListener(
-                    "click",
-                    () => {
-
-                        if (this.filterCat) {
-                            this.filterCat.value =
-                                button.dataset.cat;
-                        }
-
-                        if (this.secSearch) {
-                            this.secSearch.value = "";
-                        }
-
-                        this.navigate(
-                            "view-search"
-                        );
-
-                        this.renderSearch();
-                    }
-                );
-            });
-
+        document.querySelector(".categories-grid")?.addEventListener("click", event => {
+            const button = event.target.closest(".cat-btn");
+            if (!button) return;
+            this.filterCat.value = button.dataset.cat;
+            this.filterBrand.value = "";
+            this.secSearch.value = "";
+            this.navigate("view-search");
+        });
 
         document
             .getElementById("theme-toggle")
@@ -436,6 +422,8 @@ const AppUI = {
         this.populateFilters();
 
         this.renderHome();
+        if (document.getElementById("view-search")?.classList.contains("active")) this.renderSearch();
+        if (document.getElementById("view-favorites")?.classList.contains("active")) this.renderFavoritesFull();
 
         const status =
             document.getElementById(
@@ -478,9 +466,14 @@ const AppUI = {
 
                 try {
 
-                    await navigator.serviceWorker.register(
-                        "./sw.js"
-                    );
+                    const registration = await navigator.serviceWorker.register("./sw.js", {updateViaCache: "none"});
+                    const refresh = () => this.updateOnlineState();
+                    navigator.serviceWorker.addEventListener("controllerchange", refresh);
+                    registration.addEventListener("updatefound", () => {
+                        registration.installing?.addEventListener("statechange", refresh);
+                    });
+                    navigator.serviceWorker.ready.then(refresh);
+                    refresh();
 
                 } catch (error) {
 
@@ -494,7 +487,7 @@ const AppUI = {
     },
 
 
-    updateOnlineState() {
+    async updateOnlineState() {
 
         const online =
             navigator.onLine;
@@ -519,10 +512,22 @@ const AppUI = {
 
         if (status) {
 
-            status.textContent =
-                online
-                    ? "Con conexión a Internet."
-                    : "Sin conexión. Los PDF descargados siguen disponibles.";
+            let ready = false;
+            try {
+                const worker = navigator.serviceWorker?.controller;
+                if (worker) {
+                    ready = await new Promise(resolve => {
+                        const channel = new MessageChannel();
+                        const timer = setTimeout(() => resolve(false), 2000);
+                        channel.port1.onmessage = event => { clearTimeout(timer); resolve(event.data?.ready === true); };
+                        worker.postMessage({type: "OFFLINE_STATUS"}, [channel.port2]);
+                    });
+                }
+            } catch {}
+            status.textContent = ready
+                ? "Aplicación preparada para trabajar sin conexión. Solo están disponibles offline los PDF descargados."
+                : "Aplicación aún no preparada para trabajar sin conexión. La conexión a Internet no garantiza la preparación offline.";
+
         }
     },
 
@@ -623,6 +628,15 @@ const AppUI = {
                 "div"
             );
 
+        card.tabIndex = 0;
+        card.setAttribute("role", "button");
+        card.setAttribute("aria-label", `Abrir ${item.marca} ${item.modelo}`);
+        card.addEventListener("keydown", event => {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                this.openDetail(item.id);
+            }
+        });
         card.className =
             "item-card";
 
@@ -737,7 +751,24 @@ const AppUI = {
     },
 
 
+    getAllCategories() {
+        return [...new Set(["Alarmas", "CCTV", "Redes", "Control de Acceso", "Videoporteros", "Electricidad", "Otros", ...DataService.getCategories()])];
+    },
+
     populateFilters() {
+        const categorySelection = this.filterCat?.value || "";
+        const brandSelection = this.filterBrand?.value || "";
+        const grid = document.querySelector(".categories-grid");
+        for (const category of this.getAllCategories()) {
+            if ([...grid.children].some(button => button.dataset.cat === category)) continue;
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "cat-btn";
+            button.dataset.cat = category;
+            button.innerHTML = `<span>${this.getIconForCategory(category)}</span><strong>${this.escape(category)}</strong>`;
+            grid.appendChild(button);
+        }
+
 
         if (this.filterCat) {
 
@@ -746,8 +777,7 @@ const AppUI = {
                     Todas las categorías
                 </option>`;
 
-            DataService
-                .getCategories()
+            this.getAllCategories()
                 .forEach(category => {
 
                     this.filterCat.add(
@@ -760,6 +790,7 @@ const AppUI = {
         }
 
 
+        if (this.filterCat) this.filterCat.value = categorySelection;
         if (this.filterBrand) {
 
             this.filterBrand.innerHTML =
@@ -778,6 +809,7 @@ const AppUI = {
                         )
                     );
                 });
+            this.filterBrand.value = brandSelection;
         }
     },
 
@@ -818,7 +850,7 @@ const AppUI = {
 
             this.searchResults.innerHTML =
                 `<p class="empty-state">
-                    No se encontraron equipos.
+                    ${this.filterCat?.value && !DataService.search("", this.filterCat.value).length ? "Esta categoría todavía no tiene equipos." : "No se encontraron equipos."}
                 </p>`;
 
             return;
@@ -877,833 +909,100 @@ const AppUI = {
     },
 
 
+    field(id, label, options = null, type = "text") {
+        const control = options
+            ? `<select id="${id}"><option value="">Sin seleccionar</option>${options.map(v => `<option>${this.escape(v)}</option>`).join("")}</select>`
+            : type === "textarea" ? `<textarea id="${id}" rows="3" autocomplete="off"></textarea>` : `<input id="${id}" type="${type}" autocomplete="off">`;
+        return `<div class="form-group"><label for="${id}">${label}</label>${control}</div>`;
+    },
+
     renderFichaForm() {
-
-        const container =
-            document.getElementById(
-                "ficha-form-container"
-            );
-
-        if (!container) {
-            return;
-        }
-
-
-        container.innerHTML = `
-
-            <div class="ficha-card">
-
-                <h3>📋 Datos de instalación</h3>
-
-                <div class="form-group">
-                    <label>Cliente / Empresa</label>
-                    <input
-                        type="text"
-                        id="f-cliente"
-                        placeholder="Cliente / Empresa"
-                    >
-                </div>
-
-                <div class="form-group">
-                    <label>Ubicación</label>
-                    <input
-                        type="text"
-                        id="f-ubicacion"
-                        placeholder="Dirección / ubicación"
-                    >
-                </div>
-
-                <div class="form-group">
-                    <label>Fecha</label>
-                    <input
-                        type="date"
-                        id="f-fecha"
-                        value="${new Date()
-                            .toISOString()
-                            .split("T")[0]}"
-                    >
-                </div>
-
-
-                <h3>🌐 Red</h3>
-
-                <div class="form-group">
-                    <label>IP</label>
-                    <input
-                        type="text"
-                        id="f-ip"
-                        placeholder="192.168.1.100"
-                    >
-                </div>
-
-                <div class="form-group">
-                    <label>Gateway</label>
-                    <input
-                        type="text"
-                        id="f-gateway"
-                        placeholder="192.168.1.1"
-                    >
-                </div>
-
-                <div class="form-group">
-                    <label>Puertos / servicios</label>
-                    <input
-                        type="text"
-                        id="f-puertos"
-                        placeholder="HTTP, HTTPS, RTSP, etc."
-                    >
-                </div>
-
-
-                <h3>📹 CCTV</h3>
-
-                <div class="form-group">
-
-                    <label>Marca de cámaras</label>
-
-                    <select id="f-cctv-cam-marca">
-
-                        <option>Dahua</option>
-                        <option>Hikvision</option>
-                        <option>Vesta</option>
-                        <option>Imou</option>
-                        <option>Otros</option>
-
-                    </select>
-
-                    <input
-                        type="text"
-                        id="f-cctv-cam-otro"
-                        class="conditional"
-                        placeholder="Marca / modelo"
-                    >
-
-                </div>
-
-
-                <div class="form-group">
-
-                    <label>Marca de grabador</label>
-
-                    <select id="f-cctv-grab-marca">
-
-                        <option>Dahua</option>
-                        <option>Hikvision</option>
-                        <option>Vesta</option>
-                        <option>Imou</option>
-                        <option>Otros</option>
-
-                    </select>
-
-                    <input
-                        type="text"
-                        id="f-cctv-grab-otro"
-                        class="conditional"
-                        placeholder="Marca / modelo"
-                    >
-
-                </div>
-
-
-                <div class="form-group">
-
-                    <label>Tecnología</label>
-
-                    <select id="f-cctv-tipo">
-
-                        <option>IP</option>
-                        <option>HD</option>
-                        <option>Híbrida</option>
-
-                    </select>
-
-                </div>
-
-
-                <div class="ficha-subsection">
-
-                    <h4>📡 Acceso remoto</h4>
-
-                    <p class="small-note">
-                        No introduzcas contraseñas.
-                    </p>
-
-                    ${[
-                        ["p2p", "P2P", "Número de serie / ID"],
-                        ["dns", "DDNS", "Dominio"],
-                        ["vpn", "VPN", "Servidor / referencia"],
-                        ["otros", "Otro", "Descripción"]
-                    ].map(
-                        ([key, label, placeholder]) => `
-
-                        <div class="remote-row">
-
-                            <label class="checkbox-tag">
-
-                                <input
-                                    type="checkbox"
-                                    class="remote-check"
-                                    data-target="${key}-input"
-                                >
-
-                                <span>
-                                    ${label}
-                                </span>
-
-                            </label>
-
-                            <input
-                                type="text"
-                                id="${key}-input"
-                                class="remote-input"
-                                placeholder="${placeholder}"
-                                disabled
-                            >
-
-                        </div>
-                    `
-                    ).join("")}
-
-                </div>
-
-
-                <h3>📹 Cámaras / canales</h3>
-
-                <div
-                    class="scrollable-box"
-                    id="cctv-channels-list"
-                ></div>
-
-
-                <h3>🚨 Alarmas</h3>
-
-                <div class="form-group">
-
-                    <label>Central</label>
-
-                    <select id="f-alarm-marca">
-
-                        <option>Ajax</option>
-                        <option>Hikvision</option>
-                        <option>Vesta</option>
-                        <option>DSC</option>
-                        <option>Risco</option>
-                        <option>Otro</option>
-
-                    </select>
-
-                    <input
-                        type="text"
-                        id="f-alarm-otro"
-                        class="conditional"
-                        placeholder="Marca / modelo"
-                    >
-
-                </div>
-
-
-                <h3>🚨 Mapeo de zonas</h3>
-
-                <div
-                    class="scrollable-box"
-                    id="alarm-zones-list"
-                ></div>
-
-                <button
-                    type="button"
-                    class="btn-add"
-                    id="btn-add-zone"
-                >
-                    ➕ Añadir 5 zonas
-                </button>
-
-
-                <h3>📝 Observaciones técnicas</h3>
-
-                <textarea
-                    id="f-observaciones"
-                    rows="5"
-                    placeholder="Incidencias, pruebas, pendientes..."
-                ></textarea>
-
-
-                <div class="ficha-actions">
-
-                    <button
-                        class="btn-ficha primary"
-                        id="btn-copy-ficha"
-                    >
-                        📋 Copiar para Notas
-                    </button>
-
-                    <button
-                        class="btn-ficha secondary"
-                        id="btn-download-ficha"
-                    >
-                        📥 Descargar TXT
-                    </button>
-
-                </div>
-
-            </div>
-        `;
-
-
-        const channels =
-            document.getElementById(
-                "cctv-channels-list"
-            );
-
-
-        for (
-            let i = 1;
-            i <= 32;
-            i++
-        ) {
-
-            channels.insertAdjacentHTML(
-                "beforeend",
-                `
-                <div class="grid-row">
-
-                    <span class="row-num">
-                        CH${i}
-                    </span>
-
-                    <input
-                        type="text"
-                        id="f-ch-name-${i}"
-                        placeholder="Cámara ${i}"
-                    >
-
-                    <input
-                        type="text"
-                        id="f-ch-ip-${i}"
-                        placeholder="IP"
-                    >
-
-                    <input
-                        type="text"
-                        id="f-ch-port-${i}"
-                        placeholder="Puerto"
-                    >
-
-                </div>
-                `
-            );
-        }
-
-
-        this.renderZones();
-
-
-        container
-            .querySelectorAll(
-                ".remote-check"
-            )
-            .forEach(check => {
-
-                check.addEventListener(
-                    "change",
-                    event => {
-
-                        const input =
-                            document.getElementById(
-                                event.target.dataset.target
-                            );
-
-                        if (!input) {
-                            return;
-                        }
-
-                        input.disabled =
-                            !event.target.checked;
-
-                        if (
-                            !event.target.checked
-                        ) {
-                            input.value = "";
-                        }
-                    }
-                );
-            });
-
-
-        [
-            [
-                "f-cctv-cam-marca",
-                "f-cctv-cam-otro"
-            ],
-            [
-                "f-cctv-grab-marca",
-                "f-cctv-grab-otro"
-            ],
-            [
-                "f-alarm-marca",
-                "f-alarm-otro"
-            ]
-        ].forEach(
-            ([selectId, inputId]) => {
-
-                const select =
-                    document.getElementById(
-                        selectId
-                    );
-
-                const input =
-                    document.getElementById(
-                        inputId
-                    );
-
-                const update =
-                    () => {
-
-                        input.classList.toggle(
-                            "visible",
-                            select.value === "Otros" ||
-                            select.value === "Otro"
-                        );
-                    };
-
-                select.addEventListener(
-                    "change",
-                    update
-                );
-
-                update();
-            }
-        );
-
-
-        document
-            .getElementById("btn-add-zone")
-            ?.addEventListener(
-                "click",
-                () => {
-
-                    this.totalZones += 5;
-
-                    this.renderZones();
-                }
-            );
-
-
-        document
-            .getElementById("btn-copy-ficha")
-            ?.addEventListener(
-                "click",
-                async () => {
-
-                    try {
-
-                        await navigator.clipboard.writeText(
-                            this.generarTextoFicha()
-                        );
-
-                        alert(
-                            "✅ Ficha copiada. Puedes pegarla en Notas."
-                        );
-
-                    } catch {
-
-                        alert(
-                            "No se pudo copiar automáticamente. Usa Descargar TXT."
-                        );
-                    }
-                }
-            );
-
-
-        document
-            .getElementById("btn-download-ficha")
-            ?.addEventListener(
-                "click",
-                () => {
-
-                    const text =
-                        this.generarTextoFicha();
-
-                    const blob =
-                        new Blob(
-                            [text],
-                            {
-                                type:
-                                    "text/plain;charset=utf-8"
-                            }
-                        );
-
-                    const url =
-                        URL.createObjectURL(
-                            blob
-                        );
-
-                    const link =
-                        document.createElement(
-                            "a"
-                        );
-
-                    link.href = url;
-
-                    link.download =
-                        `Ficha_${
-                            (
-                                this.value(
-                                    "f-cliente"
-                                ) ||
-                                "Instalacion"
-                            )
-                        }.txt`;
-
-                    link.click();
-
-                    URL.revokeObjectURL(
-                        url
-                    );
-                }
-            );
+        const container = document.getElementById("ficha-form-container");
+        // Keep the live DOM: installation data never enters persistent storage.
+        if (!container || container.childElementCount) return;
+        container.innerHTML = `<div class="ficha-card">
+            <h3>📋 Datos de instalación</h3>
+            ${this.field("f-cliente", "Cliente / Empresa")}
+            ${this.field("f-ubicacion", "Ubicación")}
+            ${this.field("f-fecha", "Fecha", null, "date")}
+            <details open><summary>🌐 Red</summary>
+            ${this.field("f-ip", "IP")}${this.field("f-gateway", "Gateway")}${this.field("f-puertos", "Puertos / servicios")}</details>
+            <details><summary>📡 Acceso remoto</summary><p class="small-note">No introduzcas contraseñas.</p>
+            ${[["p2p", "P2P"], ["dns", "DDNS"], ["vpn", "VPN"], ["otros", "Otro"]].map(([key, label]) => `<div class="remote-row"><label><input type="checkbox" class="remote-check" data-target="${key}-input"> ${label}</label><div class="form-group"><label for="${key}-input">Referencia ${label}</label><input id="${key}-input" autocomplete="off" disabled></div></div>`).join("")}</details>
+            <details><summary>📹 Grabador</summary>${this.technicalFields("f-grab", [["marca", "Marca"], ["modelo", "Modelo"], ["serie", "Número de serie"], ["ip", "IP"], ["mac", "MAC"], ["puertos", "Puertos / servicios"], ["tecnologia", "Tecnología", ["IP", "HD", "Híbrida"]]])}</details>
+            <h3>📹 Cámaras / canales</h3><div id="cctv-channels-list"></div>
+            <button type="button" class="btn-add" id="btn-add-camera">➕ Añadir cámara</button>
+            <details><summary>🚨 Central de alarma</summary>${this.technicalFields("f-alarm", [["marca", "Marca"], ["modelo", "Modelo"], ["serie", "Número de serie"]])}</details>
+            <h3>🚨 Zonas</h3><p id="zone-count" aria-live="polite"></p><div id="alarm-zones-list"></div>
+            <button type="button" class="btn-add" id="btn-add-zone">➕ Añadir zona</button>
+            ${this.field("f-observaciones", "Observaciones técnicas", null, "textarea")}
+            <div class="ficha-actions"><button class="btn-ficha primary" id="btn-copy-ficha">📋 Copiar para Notas</button><button class="btn-ficha secondary" id="btn-download-ficha">📥 Descargar TXT</button></div>
+        </div>`;
+        this.appendCamera();
+        this.appendZone();
+        container.querySelectorAll(".remote-check").forEach(check => check.addEventListener("change", () => {
+            document.getElementById(check.dataset.target).disabled = !check.checked;
+        }));
+        document.getElementById("btn-add-camera").onclick = () => { this.totalCameras++; this.appendCamera(); };
+        document.getElementById("btn-add-zone").onclick = () => { this.totalZones++; this.appendZone(); };
+        container.addEventListener("input", () => this.updateZoneCount());
+        container.addEventListener("change", () => this.updateZoneCount());
+        document.getElementById("btn-copy-ficha").onclick = async () => {
+            try { await navigator.clipboard.writeText(this.generarTextoFicha()); alert("Ficha copiada. Puedes pegarla en Notas."); }
+            catch { alert("No se pudo copiar automáticamente. Usa Descargar TXT."); }
+        };
+        document.getElementById("btn-download-ficha").onclick = () => {
+            const url = URL.createObjectURL(new Blob([this.generarTextoFicha()], {type: "text/plain;charset=utf-8"}));
+            const link = document.createElement("a");
+            link.href = url; link.download = "Ficha_Instalacion.txt"; link.click();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        };
+        this.updateZoneCount();
     },
 
-
-    renderZones() {
-
-        const box =
-            document.getElementById(
-                "alarm-zones-list"
-            );
-
-        if (!box) {
-            return;
-        }
-
-
-        const old = {};
-
-
-        for (
-            let i = 1;
-            i <= this.totalZones;
-            i++
-        ) {
-
-            old[i] = {
-
-                name:
-                    document.getElementById(
-                        `f-z-name-${i}`
-                    )?.value || "",
-
-                detector:
-                    document.getElementById(
-                        `f-z-detector-${i}`
-                    )?.value ||
-                    "Volumétrico",
-
-                zoneType:
-                    document.getElementById(
-                        `f-z-type-${i}`
-                    )?.value ||
-                    "Instantánea"
-            };
-        }
-
-
-        box.innerHTML = "";
-
-
-        const detectorTypes = [
-            "Volumétrico",
-            "Magnético",
-            "Exterior",
-            "Cortina",
-            "Sombra",
-            "Humo / Incendio",
-            "Teclado / Sirena",
-            "Otro"
-        ];
-
-
-        const zoneTypes = [
-            "Instantánea",
-            "Retardada",
-            "Pánico",
-            "24 horas",
-            "Incendio",
-            "Sabotaje",
-            "Exterior",
-            "Llave / Armado",
-            "Técnica",
-            "Otro"
-        ];
-
-
-        for (
-            let i = 1;
-            i <= this.totalZones;
-            i++
-        ) {
-
-            box.insertAdjacentHTML(
-                "beforeend",
-                `
-                <div class="zone-block">
-
-                    <div class="zone-title">
-                        Z${i}
-                    </div>
-
-                    <input
-                        type="text"
-                        id="f-z-name-${i}"
-                        placeholder="Ubicación / detector"
-                    >
-
-                    <select
-                        id="f-z-detector-${i}"
-                    >
-                        ${detectorTypes
-                            .map(
-                                value =>
-                                    `<option>${value}</option>`
-                            )
-                            .join("")}
-                    </select>
-
-                    <select
-                        id="f-z-type-${i}"
-                    >
-                        ${zoneTypes
-                            .map(
-                                value =>
-                                    `<option>${value}</option>`
-                            )
-                            .join("")}
-                    </select>
-
-                </div>
-                `
-            );
-
-
-            if (old[i]) {
-
-                document.getElementById(
-                    `f-z-name-${i}`
-                ).value =
-                    old[i].name;
-
-                document.getElementById(
-                    `f-z-detector-${i}`
-                ).value =
-                    old[i].detector;
-
-                document.getElementById(
-                    `f-z-type-${i}`
-                ).value =
-                    old[i].zoneType;
-            }
-        }
+    technicalFields(prefix, fields) {
+        return fields.map(([key, label, options]) => this.field(`${prefix}-${key}`, label, options)).join("");
     },
 
-
-    value(id) {
-
-        return (
-            document.getElementById(id)
-                ?.value
-                ?.trim() ||
-            "N/A"
-        );
+    appendCamera() {
+        const i = this.totalCameras;
+        document.getElementById("cctv-channels-list").insertAdjacentHTML("beforeend", `<details open data-camera="${i}"><summary>Cámara ${i}</summary>${this.technicalFields(`f-ch-${i}`, [["nombre", "Ubicación o nombre"], ["marca", "Marca"], ["modelo", "Modelo"], ["serie", "Número de serie"], ["ip", "IP"], ["mac", "MAC"], ["puerto", "Puerto"], ["usuario", "Usuario (sin contraseña)"], ["tipo", "Tipo de cámara"], ["resolucion", "Resolución"], ["alimentacion", "PoE o alimentación"], ["observaciones", "Observaciones"]])}</details>`);
     },
 
+    appendZone() {
+        const i = this.totalZones;
+        document.getElementById("alarm-zones-list").insertAdjacentHTML("beforeend", `<details open data-zone="${i}"><summary>Zona ${i}</summary>${this.technicalFields(`f-z-${i}`, [["numero", "Número de zona"], ["ubicacion", "Ubicación"], ["detector", "Detector asociado", ["Volumétrico", "Magnético", "Exterior", "Cortina", "Sombra", "Humo / Incendio", "Teclado / Sirena", "Otro"]], ["modelo", "Modelo del detector"], ["tipo", "Tipo de zona", ["Instantánea", "Retardada", "24 horas", "Pánico", "Incendio", "Sabotaje", "Exterior", "Llave / Armado", "Técnica", "Otro"]], ["particion", "Partición"], ["observaciones", "Observaciones"]])}</details>`);
+    },
+
+    filledFields(root) {
+        return [...root.querySelectorAll("input, select, textarea")].filter(el => el.type !== "checkbox" && !el.disabled && el.value.trim()).map(el => `${document.querySelector(`label[for="${el.id}"]`).textContent}: ${el.value.trim()}`);
+    },
+
+    updateZoneCount() {
+        const count = [...document.querySelectorAll("[data-zone]")].filter(zone => this.filledFields(zone).length).length;
+        document.getElementById("zone-count").textContent = `${count} zonas cumplimentadas`;
+    },
+
+    value(id) { return document.getElementById(id)?.value?.trim() || ""; },
 
     generarTextoFicha() {
-
-        const value =
-            id => this.value(id);
-
-
-        const selected =
-            (
-                id,
-                otherId
-            ) => {
-
-                const selectedValue =
-                    value(id);
-
-                if (
-                    selectedValue === "Otros" ||
-                    selectedValue === "Otro"
-                ) {
-
-                    const other =
-                        value(otherId);
-
-                    return other === "N/A"
-                        ? selectedValue
-                        : other;
+        const container = document.getElementById("ficha-form-container");
+        const sections = [];
+        const add = (title, lines) => { if (lines.length) sections.push(`--- ${title} ---\n${lines.join("\n")}`); };
+        add("INSTALACIÓN", ["f-cliente", "f-ubicacion", "f-fecha", "f-observaciones"].filter(id => this.value(id)).map(id => `${document.querySelector(`label[for="${id}"]`).textContent}: ${this.value(id)}`));
+        for (const detail of container.querySelectorAll("details")) {
+            const lines = this.filledFields(detail);
+            if (detail.querySelector(".remote-check")) {
+                for (const check of detail.querySelectorAll(".remote-check:checked")) {
+                    const label = check.parentElement.textContent.trim();
+                    if (!this.value(check.dataset.target)) lines.push(label);
                 }
-
-                return selectedValue;
-            };
-
-
-        const remote =
-            [
-                "p2p",
-                "dns",
-                "vpn",
-                "otros"
-            ]
-                .map(key => {
-
-                    const check =
-                        document.querySelector(
-                            `[data-target="${key}-input"]`
-                        );
-
-                    return check?.checked
-                        ? `${key.toUpperCase()}: ${value(
-                            `${key}-input`
-                        )}`
-                        : null;
-                })
-                .filter(Boolean)
-                .join(" | ") ||
-            "Sin configuración remota";
-
-
-        const channels = [];
-
-
-        for (
-            let i = 1;
-            i <= 32;
-            i++
-        ) {
-
-            const name =
-                value(
-                    `f-ch-name-${i}`
-                );
-
-            if (
-                name !== "N/A"
-            ) {
-
-                channels.push(
-                    `CH${i}: ${name} | IP: ${
-                        value(
-                            `f-ch-ip-${i}`
-                        )
-                    } | Puerto: ${
-                        value(
-                            `f-ch-port-${i}`
-                        )
-                    }`
-                );
             }
+            add(detail.querySelector("summary").textContent, lines);
         }
-
-
-        const zones = [];
-
-
-        for (
-            let i = 1;
-            i <= this.totalZones;
-            i++
-        ) {
-
-            const name =
-                value(
-                    `f-z-name-${i}`
-                );
-
-            if (
-                name !== "N/A"
-            ) {
-
-                zones.push(
-                    `Z${i}: ${name} | Detector: ${
-                        value(
-                            `f-z-detector-${i}`
-                        )
-                    } | Tipo: ${
-                        value(
-                            `f-z-type-${i}`
-                        )
-                    }`
-                );
-            }
-        }
-
-
-        return `========================================
-FICHA TÉCNICA DE INSTALACIÓN
-========================================
-
-FECHA: ${value("f-fecha")}
-CLIENTE: ${value("f-cliente")}
-UBICACIÓN: ${value("f-ubicacion")}
-
---- RED ---
-
-IP: ${value("f-ip")}
-GATEWAY: ${value("f-gateway")}
-PUERTOS / SERVICIOS: ${value("f-puertos")}
-
---- CCTV ---
-
-CÁMARAS: ${selected(
-    "f-cctv-cam-marca",
-    "f-cctv-cam-otro"
-)}
-
-GRABADOR: ${selected(
-    "f-cctv-grab-marca",
-    "f-cctv-grab-otro"
-)}
-
-TECNOLOGÍA: ${value(
-    "f-cctv-tipo"
-)}
-
-ACCESO REMOTO:
-${remote}
-
---- CANALES CCTV ---
-
-${
-    channels.join("\n") ||
-    "Sin cámaras registradas."
-}
-
---- ALARMA ---
-
-CENTRAL: ${selected(
-    "f-alarm-marca",
-    "f-alarm-otro"
-)}
-
---- ZONAS ---
-
-${
-    zones.join("\n") ||
-    "Sin zonas registradas."
-}
-
---- OBSERVACIONES TÉCNICAS ---
-
-${value(
-    "f-observaciones"
-)}
-
-NOTA:
-No se almacenan contraseñas ni credenciales
-en esta ficha.
-
-========================================`;
+        const count = [...container.querySelectorAll("[data-zone]")].filter(zone => this.filledFields(zone).length).length;
+        if (count) sections.push(`Zonas cumplimentadas: ${count}`);
+        return ["FICHA TÉCNICA DE INSTALACIÓN", ...sections].join("\n\n");
     },
 
 
@@ -1998,28 +1297,15 @@ en esta ficha.
 
 
     async isCached(path) {
-
-        if (!("caches" in window)) {
+        if (!("caches" in window)) return false;
+        try {
+            const url = new URL(path, location.href).href;
+            const cache = await caches.open(PDF_CACHE);
+            return Boolean(await cache.match(url));
+        } catch {
+            // Cache access may be unavailable; online manuals must still open.
             return false;
         }
-
-
-        const url =
-            new URL(
-                path,
-                location.href
-            ).href;
-
-
-        const cache =
-            await caches.open(
-                PDF_CACHE
-            );
-
-
-        return Boolean(
-            await cache.match(url)
-        );
     },
 
 
